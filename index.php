@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0
+Version:     1.1
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
