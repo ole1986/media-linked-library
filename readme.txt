@@ -7,7 +7,7 @@ Tested up to: 4.5.2
 Stable tag: trunk
 License: GPLv3
 
-Conceptional change of adding media files to page/post content using the IDs instead of URLs
+Support for adding media files to page/post content using the IDs instead of URLs
 
 == Description ==
 This plugin is used to improve the media library by adding media or attachment IDs instead of static URLs into the content editor (TinyMCE)
