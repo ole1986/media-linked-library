@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Media Linked Library
-Plugin URI:  http://www.bbc-chartering.com
-Description: Conceptional change of adding media files to page/post content using the IDs instead of URLs
+Plugin URI:  https://github.com/ole1986/media-linked-library
+Description: Support for adding media files to page/post content using the IDs instead of URLs
 Version:     1.0
-Author:      Ole Koeckemann
-Author URI:  http://www.bbc-chartering.com
+Author:      ole1986
+Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Domain Path: /languages
