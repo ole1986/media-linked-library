@@ -28,8 +28,8 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 
 
 == Changelog ==
-v1.1
+v1.0.1
 - author changes
 
-v1.0
+v1.0.0
 - inital version
