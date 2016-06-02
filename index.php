@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.1
+Version:     1.0.2
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -14,8 +14,8 @@ Text Domain: media-linked-library
 
 define( 'MLL_ROOT_URL', plugin_dir_url( __FILE__ ) );
 
+$uploadDir = wp_upload_dir();
 if(!defined('WP_UPLOAD_URI')) {
-    $uploadDir = wp_upload_dir();
     define('WP_UPLOAD_URI', $uploadDir['baseurl']);
 }
 
@@ -35,7 +35,7 @@ class MediaLinkedLibrary {
         add_action( 'wp_ajax_media_get', array(&$this,'media_get_callback') );
         add_action( 'wp_ajax_media_search', array(&$this,'media_search_callback') );
         add_action( 'wp_ajax_wp_handle_upload', array(&$this,'media_upload_callback') );
-        //add_action( 'wp_ajax_media_upload_nonce', array(&$this,'media_upload_nonce') );
+        add_action( 'wp_ajax_media_upload_dirs', array(&$this,'media_upload_dirs') );
         // ajax request to fetch media categories (if available)
         add_action( 'wp_ajax_taxonomy_get', array(&$this, 'taxonomy_get_callback') );
 
@@ -43,6 +43,22 @@ class MediaLinkedLibrary {
         // Add Bulk operations in Media library (DropDown menu) to allow adding and removing categories
         add_action('load-upload.php',  array(&$this, 'media_bulkaction_submit'));
         add_action('admin_footer', array(&$this, 'media_bulkaction_category'));
+        
+    }
+    
+    private function getUploadPathes(){
+        global $uploadDir;
+        $result = [];
+        $iterator = new RecursiveDirectoryIterator($uploadDir['basedir']);
+        $objects = new RecursiveIteratorIterator($iterator);
+        foreach ($objects as $name => $fileinfo) {
+            if ($fileinfo->isDir() ) {
+                if($fileinfo->getBasename() == '..') continue;
+                $f = substr( $name, strlen($uploadDir['basedir']), -1);
+                $result[] = $f;
+            }
+        }
+        return $result;
     }
     
     /**
@@ -151,20 +167,32 @@ class MediaLinkedLibrary {
     }
     
     public function media_upload_callback(){
-        $movefile = wp_handle_upload( $_FILES['file']);
+        global $uploadDir;
         
-        if($movefile && !isset($movefile['error'])) {
-            $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', basename($movefile['url']));
-            $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $movefile['type'] ], $movefile['file']);
+        $file = $_FILES['file'];
+        $filename = mb_ereg_replace("([\s~,;\[\]\(\)])", '_', $file['name']);
+        $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']) . $filename;
+
+        $movefile = move_uploaded_file( $file['tmp_name'], $uploadDir['basedir'] . '/' . $destination);
+        if($movefile) {
+            $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
+            $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $file['type'] ], $destination);
             // generate the thumbnail
-            $metadata = wp_generate_attachment_metadata($attachment_id, $movefile['file']);
+            $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination);
             wp_update_attachment_metadata($attachment_id, $metadata);
-            
             echo $attachment_id;
         } else {
             error_log("Error uploading file");
             echo "0";
         }
+        
+        wp_die();
+    }
+    
+    public function media_upload_dirs(){
+        $res = $this->getUploadPathes();
+        
+        echo json_encode($res);
         
         wp_die();
     }

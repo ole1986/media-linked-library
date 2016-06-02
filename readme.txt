@@ -28,6 +28,10 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 
 
 == Changelog ==
+= v1.0.2 =
+- select destination subfolders (below uploadDir) while uploading files
+- close dialog when ESC key is pressed
+
 = v1.0.1 =
 - inital wordpress version and author change
 

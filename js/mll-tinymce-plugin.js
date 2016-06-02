@@ -61,6 +61,11 @@
          * When dialog is displayed, initialize its content
          */
         initDialog: function(jq_context){
+            $(jq_context).focus();
+            $(jq_context).keydown(function(e){
+                if(e.which == 27) that.editor.windowManager.close();
+            });
+            
             var selectedNode = that.editor.selection.getNode();
             if (selectedNode.nodeName == "IMG" && that.editor.dom.hasClass(selectedNode, "media_reference")) {
                 var media_id = that.getShortcodeParam(selectedNode.title, "id");
@@ -107,7 +112,7 @@
             
             $('#file', jq_context).change(function(){
                 var $up = $(this);
-                that.ajax_upload_media( $(this)[0].files[0], function(response){
+                that.ajax_upload_media( $(this)[0].files[0], $('#upload_folder', jq_context).val(), function(response){
                     $up.val('');
                     var att_id = parseInt(response);
                     that.showMedia(att_id, jq_context);
@@ -119,6 +124,12 @@
             that.ajax_taxonomy_get().done(function(list){
                 $.each(list, function(k, o){
                     $('#category', jq_context).append($('<option>', {value: o.term_id, text: o.name }) );
+                });
+            });
+            
+            that.ajax_upload_dirs().done(function(list){
+                $.each(list, function(k, v) {
+                    $('#upload_folder', jq_context).append($('<option>', {value: v, text: v }));
                 });
             });
         },
@@ -300,10 +311,11 @@
          * @param {File} f selected file from input tag
          * @param {function} callback on success returning the attachment id as parameter 1
          */
-        ajax_upload_media: function(f, callback){
+        ajax_upload_media: function(f, p, callback){
             var formData = new FormData();
             formData.append('action', 'wp_handle_upload');
             formData.append('file', f);
+            formData.append('path', p);
             
             jQuery.ajax({
                 type: 'POST',
@@ -325,6 +337,11 @@
             if(category != undefined)
                 data['category'] = category;
             
+            return jQuery.post(ajaxurl, data, null, 'json');
+        },
+        
+        ajax_upload_dirs: function(){
+            var data = {'action': 'media_upload_dirs'};
             return jQuery.post(ajaxurl, data, null, 'json');
         },
         
