@@ -15,6 +15,8 @@
             #search { width: 165px; }
             #category { width: 110px; padding: 4px 6px; }
             #upload_folder {width: 160px;padding: 4px 6px; }
+
+            #file { position:absolute; top:0px; left:65px; width:80px; height:30px;opacity:0; z-index:1000 }
             
             #mll-search {
                 padding: 0.5em;
@@ -50,6 +52,7 @@
                 background-image: -o-linear-gradient(top, #fff, #f3f3f3);
                 background-image: linear-gradient(to bottom, #fff, #f3f3f3);
                 border-color: #999;
+                padding: 4px;
                 color: #222;
             }
             
@@ -128,12 +131,14 @@
                     <option value="0">[All]</option>
                 </select>
             </div>
-            <div style="margin-top: 0.5em">
+            <div style="margin-top: 0.5em;position:relative;">
                 <label for="search">or Upload: </label>
-                <input type="file" id="file" name="file" multiple="multiple" style="width: 118px" />
-                <label>into</label>
+                <input type="button" value="Select Files" />
+                <input type="file" id="file" name="file" multiple="multiple" style="" />
+                <span style="font-size:70%;">into</span>
                 <select name="upload_folder" id="upload_folder">
                 </select>
+                <input type="button" id="btnUpload" value="Upload" />
             </div>
             <div class="mediaContainer">
                 <!-- This container has the search results -->

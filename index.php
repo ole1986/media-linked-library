@@ -19,7 +19,10 @@ if(!defined('WP_UPLOAD_URI')) {
     define('WP_UPLOAD_URI', $uploadDir['baseurl']);
 }
 
-class MediaLinkedLibrary {    
+class MediaLinkedLibrary {
+
+    public static $taxonomy = 'media_category';
+
     public function __construct(){
         // some global JS
         add_action('admin_head', array(&$this, 'script_header'));
@@ -81,7 +84,7 @@ class MediaLinkedLibrary {
 
         $type = $current_screen->post_type;
 
-        if( is_admin() && ( $type == 'post' || $type == 'page' ) ) {
+        if( is_admin() ) {
             array_push( $button_array, 'mll_button' );
         }
 
@@ -95,8 +98,8 @@ class MediaLinkedLibrary {
         global $current_screen; //  WordPress contextual information about where we are.
 
         $type = $current_screen->post_type;
-
-        if( is_admin() && ( $type == 'post' || $type == 'page' ) ) {
+        
+        if( is_admin() ) {
             $plugin_array['mll_plugin'] = MLL_ROOT_URL . 'js/mll-tinymce-plugin.js';
         }
 
@@ -146,15 +149,16 @@ class MediaLinkedLibrary {
     }
     
     public function taxonomy_get_callback(){
-        $terms = get_terms(['taxonomy' => "media_category", 'hide_empty' => 0]);
+        $terms = get_terms(['taxonomy' => self::$taxonomy, 'hide_empty' => 0]);
         
-        echo json_encode($terms);
+        if(!is_object($terms))
+            echo json_encode($terms);
         
         wp_die();
     }
     public function media_get_callback(){
         $media = $this->getMedia($_POST['media_id'], true);
-        echo json_encode(['ID' => $media->ID, 'post_title' => $media->post_title, 'post_mime_type' => $media->post_mime_type, 'path' => $media->path, 'thumbnail' => $media->thumbnail]);
+        echo json_encode($media);
         
         wp_die();
     }
@@ -167,36 +171,53 @@ class MediaLinkedLibrary {
     }
     
     public function media_upload_callback(){
-        global $uploadDir;
+        global $uploadDir, $wpdb;
+
+        if(!isset($_FILES['file'])) wp_die();
+
+        $l = count($_FILES['file']['name']);
+        if($l <= 0) wp_die();
 
         $result = [];
 
-        $l = count($_FILES['file']['name']);
+        $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']);
+        $filenames = array_map(function($v) use($destination){  return $destination . preg_replace("([\s~,;\[\]\(\)])", '_', $v);  }, $_FILES['file']['name']);
+
+        // check if file already exists
+        $fn = implode("','", $filenames);
+        $existingAttachments = $wpdb->get_results( "SELECT meta_value, post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value IN('{$fn}')", OBJECT_K);
 
         for ($i=0; $i < $l; $i++) { 
-            $filename = &$_FILES['file']['name'][$i];
+            $filename = $filenames[$i];
+            // skip file when its already in DB
+            if(in_array($filename, array_keys($existingAttachments))) {
+                $result[] = intval($existingAttachments[$filename]->post_id);
+                continue;
+            }
+
             $tmpname = &$_FILES['file']['tmp_name'][$i];
             $filetype = &$_FILES['file']['type'][$i];
 
-            $filename = mb_ereg_replace("([\s~,;\[\]\(\)])", '_', $filename);
-
-            $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']) . $filename;
-
-            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $destination);
+            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $destination . $filename);
             if($movefile) {
                 $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
-                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $destination);
+                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $destination . $filename);
                 // generate the thumbnail
-                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination);
+                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination . $filename);
                 wp_update_attachment_metadata($attachment_id, $metadata);
 
                 $result[] = $attachment_id; 
-            } else {
-                error_log("Error uploading file");
             }
         }
         
-        echo json_encode($result);
+        $existingAttachmentIDs = array_map(function($v){ return $v->post_id; }, $existingAttachments);
+
+        $mediaList = $this->getMedia($result, true);
+        // add property for existing already
+        $mediaList = array_map(function($v) use($existingAttachmentIDs){  if(in_array($v->ID, $existingAttachmentIDs)) { $v->exists = true; } return $v; }, $mediaList);
+
+        echo json_encode($mediaList);
+
         wp_die();
     }
     
@@ -213,7 +234,7 @@ class MediaLinkedLibrary {
         
         $category = intval($category);
         
-        $query = "SELECT ID, post_title,post_mime_type FROM $wpdb->posts AS t1";
+        $query = "SELECT ID FROM $wpdb->posts AS t1";
         if($category > 0)
             $query.= " LEFT JOIN $wpdb->term_relationships AS t2 ON (t2.object_id = t1.ID)";
         
@@ -232,39 +253,36 @@ class MediaLinkedLibrary {
         
         $postIds = array_map(function($p) { return $p->ID; }, $posts);
         
-        if($withThumbnail && count($postIds) > 0) {
-            $query = sprintf("SELECT post_id, meta_value FROM $wpdb->postmeta WHERE post_id IN (%s) AND meta_key = '_wp_attachment_metadata'", implode(',',$postIds) );
-            $meta = $wpdb->get_results($query, OBJECT_K);
-            foreach ($posts as $post) {
-                if(isset($meta[$post->ID])) {
-                    $metadata = unserialize($meta[$post->ID]->meta_value);
-                    
-                    $post->path = $metadata['file'];
-                    // chekc if thumbnail is available
-                    if(isset($metadata['sizes']['thumbnail'])) {
-                        $post->thumbnail = dirname($post->path) . '/' . $metadata['sizes']['thumbnail']['file'];
-                    }
-                }
-            }
-        }
-        
-        return $posts;
+        if(!empty($postIds))
+            return $this->getMedia($postIds, true);
+        return [];
     }
     
-    private function getMedia($media_id, $withMetadata = false) {
-        $media_id = intval($media_id);
-        if($media_id <= 0) return;
-        
-        $media = get_post($media_id);
-        if($withMetadata) {
-            $media->path = get_post_meta($media_id, '_wp_attached_file', true);
-            $metadata = get_post_meta($media_id, '_wp_attachment_metadata', true);
-            if(isset($metadata['sizes']['thumbnail'])) {
-                $media->thumbnail = dirname($media->path) . '/' . $metadata['sizes']['thumbnail']['file'];
+    private function getMedia($media_ids, $withMetadata = false) {
+        if(is_array($media_ids))
+        {
+            $mediaList = get_posts(['post_type' => 'attachment','post__in' => $media_ids]);
+
+            if($withMetadata) {
+                foreach ($mediaList as &$media) {
+                    $media->path = $media->_wp_attached_file;
+                    $metadata = $media->_wp_attachment_metadata;
+
+                    if(isset($metadata['sizes']['thumbnail']))
+                        $media->thumbnail = dirname($media->path) . '/' . $metadata['sizes']['thumbnail']['file'];
+                }
             }
+            return $mediaList;
+        } else {
+            $media = get_post($media_ids);
+            if($withMetadata) {
+                $media->path = $media->_wp_attached_file;
+                $metadata = $media->_wp_attachment_metadata;
+                if(isset($metadata['sizes']['thumbnail']))
+                    $media->thumbnail = dirname($media->path) . '/' . $metadata['sizes']['thumbnail']['file'];
+            }
+            return $media;
         }
-        
-        return $media;
     }   
     
     // MEDIA: BULK ACTION ALLOW CATEGORIES FROM MEDIA LIST - START
@@ -272,7 +290,9 @@ class MediaLinkedLibrary {
         global $pagenow;
         if($pagenow != 'upload.php') return;
         
-        $terms = get_terms(['taxonomy' => "media_category", 'hide_empty' => 0]);
+        $terms = get_terms(['taxonomy' => self::$taxonomy, 'hide_empty' => 0]);
+        if(is_object($terms)) return;
+        
         ?>
         <script type="text/javascript">
             jQuery(document).ready(function() {

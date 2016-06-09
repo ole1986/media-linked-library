@@ -30,6 +30,9 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 == Changelog ==
 = v1.0.3 =
 - support for multiple file uploads
+- display upload button instead of the upload input type
+- slightly improve taxonomy (esspacially when its empty)
+- improved the getMedia method to work with both (search and upload)
 
 = v1.0.2 =
 - select destination subfolders (below uploadDir) while uploading files

@@ -41,7 +41,6 @@
                     
                     var s = that.buildShortcode(id, attr);
                     e.target.title = s.substring(1, s.length - 1);
-                    console.log(e.target.title);
                 }
                     
             });
@@ -106,38 +105,38 @@
             });
             $('#search', jq_context).change(function(e){  that.searchMedia(jq_context); });
             
-            
-            
             $('#category', jq_context).change(function(){ that.searchMedia(jq_context); });
             
             $('#file', jq_context).change(function(){
-                var $up = $(this);
+                var files = $(this)[0].files;
+
+                var title = "<p>Selected Files</p>";
+                var fileStr = '';
+
+                for(var i = 0; i < files.length; i++){
+                    fileStr += '<div>'+ files[i]['name'] +'</div>';
+                }
+
+                $('.mediaContainer', jq_context).html(title + fileStr);
+            })
+
+            $('#btnUpload', jq_context).click(function(){
+                var files = $('#file', jq_context)[0].files;
+                var destination = $('#upload_folder', jq_context).val();
+
                 $('.mediaContainer', jq_context).html('<p style="text-align: center;font-weight:bold;">Uploading...</p>');
 
-                that.ajax_upload_media( $(this)[0].files, $('#upload_folder', jq_context).val(), function(response){
+                that.ajax_upload_media( files, destination, function(response){
+                    $('#file', jq_context).val('');
+
                     console.log(response);
-                    $up.val('');
-                    var arr = [];
-                    for(var id in response) {
-                        arr.push( that.ajax_get_media(response[id]) );
-                    }
-
-                    $.when.apply($,arr).then(function(){
-                        var data = [];
-
-                        if(arr.length > 1) {
-                            for(var i in arguments) {
-                                data.push(arguments[i][0]);
-                            }
-                        } else {
-                            data.push(arguments[0]);
-                        }
-
-                        that.showSearchResult(data,jq_context);
-                    });
-                });
+                    that.showSearchResult(response,jq_context);
+                    return;
+                },
+                function(evt){ that.showUploadProgress(evt, jq_context); }
+                );
             });
-            
+
             // load categories
             that.ajax_taxonomy_get().done(function(list){
                 $.each(list, function(k, o){
@@ -226,6 +225,8 @@
                     imgSrc = MLL_UPLOAD_URL + imgSrc;
                                 
                 img.css( 'background-image', 'url('+imgSrc+')' );
+                if(row['exists'] != undefined)
+                    row['post_title'] += " [NOT UPDATED]";
                 titletext.text( row['post_title'] );
                 titletext.data('ID', row['ID']);
                 mimetext.text(row['post_mime_type']);
@@ -272,6 +273,20 @@
                 $('#mll-noselect', ctx).hide();
                 $('#mll-select',ctx).show();
             });
+        },
+
+        showUploadProgress: function(evt, ctx){
+            if (evt.lengthComputable) {
+                var percentComplete =evt.loaded / evt.total;
+
+                percentComplete = parseInt(percentComplete * 100);
+                
+                $('.mediaContainer', ctx).html('<p style="text-align: center;font-weight: bold;">Uploading '+percentComplete+'%</p>');
+
+                if (percentComplete >= 100) {
+                    $('.mediaContainer', ctx).html('<p style="text-align: center">Upload complete<br />Please wait</p>');
+                }
+            }
         },
                
         buildShortcode: function(id,attr){
@@ -329,7 +344,7 @@
          * @param {File} f selected file from input tag
          * @param {function} callback on success returning the attachment id as parameter 1
          */
-        ajax_upload_media: function(f, p, callback){
+        ajax_upload_media: function(f, p, callback, progressCallback){
             var formData = new FormData();
 
             formData.append('action', 'wp_handle_upload');
@@ -340,9 +355,15 @@
             formData.append('path', p);
             
             jQuery.ajax({
+                xhr: function(){
+                    var xhr = $.ajaxSettings.xhr();
+                    if($.isFunction(progressCallback)) xhr.upload.onprogress = progressCallback;
+                    return xhr;
+                },
                 type: 'POST',
                 url: ajaxurl,
                 data: formData,
+                cache:false,
                 contentType: false,
                 processData: false,
                 dataType: 'json',
