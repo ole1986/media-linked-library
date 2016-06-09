@@ -112,11 +112,29 @@
             
             $('#file', jq_context).change(function(){
                 var $up = $(this);
-                that.ajax_upload_media( $(this)[0].files[0], $('#upload_folder', jq_context).val(), function(response){
+                $('.mediaContainer', jq_context).html('<p style="text-align: center;font-weight:bold;">Uploading...</p>');
+
+                that.ajax_upload_media( $(this)[0].files, $('#upload_folder', jq_context).val(), function(response){
+                    console.log(response);
                     $up.val('');
-                    var att_id = parseInt(response);
-                    that.showMedia(att_id, jq_context);
-                    that.MediaID(jq_context, att_id);
+                    var arr = [];
+                    for(var id in response) {
+                        arr.push( that.ajax_get_media(response[id]) );
+                    }
+
+                    $.when.apply($,arr).then(function(){
+                        var data = [];
+
+                        if(arr.length > 1) {
+                            for(var i in arguments) {
+                                data.push(arguments[i][0]);
+                            }
+                        } else {
+                            data.push(arguments[0]);
+                        }
+
+                        that.showSearchResult(data,jq_context);
+                    });
                 });
             });
             
@@ -313,8 +331,12 @@
          */
         ajax_upload_media: function(f, p, callback){
             var formData = new FormData();
+
             formData.append('action', 'wp_handle_upload');
-            formData.append('file', f);
+            for(var i = 0; i < f.length; i++) {
+                formData.append('file['+i+']', f[i]);
+            }
+            
             formData.append('path', p);
             
             jQuery.ajax({
@@ -323,6 +345,7 @@
                 data: formData,
                 contentType: false,
                 processData: false,
+                dataType: 'json',
                 success: callback
             });
         },

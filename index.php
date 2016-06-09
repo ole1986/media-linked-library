@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.2
+Version:     1.0.3
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -154,7 +154,7 @@ class MediaLinkedLibrary {
     }
     public function media_get_callback(){
         $media = $this->getMedia($_POST['media_id'], true);
-        echo json_encode(['ID' => $media->ID, 'post_title' => $media->post_title, 'post_mime_type' => $media->post_mime_type, 'path' => $media->path]);
+        echo json_encode(['ID' => $media->ID, 'post_title' => $media->post_title, 'post_mime_type' => $media->post_mime_type, 'path' => $media->path, 'thumbnail' => $media->thumbnail]);
         
         wp_die();
     }
@@ -168,24 +168,35 @@ class MediaLinkedLibrary {
     
     public function media_upload_callback(){
         global $uploadDir;
-        
-        $file = $_FILES['file'];
-        $filename = mb_ereg_replace("([\s~,;\[\]\(\)])", '_', $file['name']);
-        $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']) . $filename;
 
-        $movefile = move_uploaded_file( $file['tmp_name'], $uploadDir['basedir'] . '/' . $destination);
-        if($movefile) {
-            $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
-            $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $file['type'] ], $destination);
-            // generate the thumbnail
-            $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination);
-            wp_update_attachment_metadata($attachment_id, $metadata);
-            echo $attachment_id;
-        } else {
-            error_log("Error uploading file");
-            echo "0";
+        $result = [];
+
+        $l = count($_FILES['file']['name']);
+
+        for ($i=0; $i < $l; $i++) { 
+            $filename = &$_FILES['file']['name'][$i];
+            $tmpname = &$_FILES['file']['tmp_name'][$i];
+            $filetype = &$_FILES['file']['type'][$i];
+
+            $filename = mb_ereg_replace("([\s~,;\[\]\(\)])", '_', $filename);
+
+            $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']) . $filename;
+
+            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $destination);
+            if($movefile) {
+                $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
+                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $destination);
+                // generate the thumbnail
+                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination);
+                wp_update_attachment_metadata($attachment_id, $metadata);
+
+                $result[] = $attachment_id; 
+            } else {
+                error_log("Error uploading file");
+            }
         }
         
+        echo json_encode($result);
         wp_die();
     }
     
@@ -245,8 +256,13 @@ class MediaLinkedLibrary {
         if($media_id <= 0) return;
         
         $media = get_post($media_id);
-        if($withMetadata)
+        if($withMetadata) {
             $media->path = get_post_meta($media_id, '_wp_attached_file', true);
+            $metadata = get_post_meta($media_id, '_wp_attachment_metadata', true);
+            if(isset($metadata['sizes']['thumbnail'])) {
+                $media->thumbnail = dirname($media->path) . '/' . $metadata['sizes']['thumbnail']['file'];
+            }
+        }
         
         return $media;
     }   
