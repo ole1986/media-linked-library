@@ -40,7 +40,8 @@ class MediaLinkedLibrary {
         add_action( 'wp_ajax_media_get', array(&$this,'media_get_callback') );
         add_action( 'wp_ajax_media_search', array(&$this,'media_search_callback') );
         add_action( 'wp_ajax_wp_handle_upload', array(&$this,'media_upload_callback') );
-        add_action( 'wp_ajax_media_upload_dirs', array(&$this,'media_upload_dirs') );
+        add_action( 'wp_ajax_media_list_dirs', array(&$this,'media_list_dirs') );
+        add_action( 'wp_ajax_media_create_folder', array(&$this,'media_create_folder') );
         // ajax request to fetch media categories (if available)
         add_action( 'wp_ajax_taxonomy_get', array(&$this, 'taxonomy_get_callback') );
 
@@ -51,30 +52,48 @@ class MediaLinkedLibrary {
         
     }
     
-    private function getUploadPathes(){
+    private function getUploadFolders($root = ''){
         global $uploadDir;
         $result = [];
-        $iterator = new RecursiveDirectoryIterator($uploadDir['basedir']);
-        $objects = new RecursiveIteratorIterator($iterator);
-        foreach ($objects as $name => $fileinfo) {
-            if ($fileinfo->isDir() ) {
-                if($fileinfo->getBasename() == '..') continue;
-                $f = substr( $name, strlen($uploadDir['basedir']), -1);
-                $result[] = $f;
-            }
+
+        $root = $this->pathSecurity($root);
+
+        $list = glob($uploadDir['basedir'] . '/' . $root .'/*', GLOB_ONLYDIR);
+        foreach ($list as $dir) {
+            $result[] = '/'.basename($dir);
         }
+
         return $result;
     }
     
+    private function createUploadFolder($name, $root = ''){
+        global $uploadDir;
+
+        $name = $this->pathSecurity($name);
+        $root = $this->pathSecurity($root);
+        
+        error_log("CreateFolder:" . $uploadDir['basedir']. "/ $root / $name");        
+
+        return mkdir($uploadDir['basedir'] . '/' . $root . '/' . $name);
+    }
+
+    private function pathSecurity($path){
+        return preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $path);
+    }
+
     /**
      * Some global JS variabled being used by mll-tinymce-plugin.js
      */
     public function script_header(){
+        $pluginData = get_plugin_data( __FILE__ );
         echo "<script>
+        var MLL_VERSION = '".$pluginData['Version']."';
         var MLL_UPLOAD_URL = '".WP_UPLOAD_URI."/';
         var MLL_PLUGIN_URL = '".MLL_ROOT_URL."';
-        var MLL_IMAGE_NOTFOUND = '/mll-noimage.png';
-        var MLL_IMAGE_BUTTON = '/mll-button.png';
+        var MLL_IMAGE_NOTFOUND = 'mll-noimage.png';
+        var MLL_FOLDER_OPEN = 'mll-folder-open.gif';
+        var MLL_FOLDER_CLOSE = 'mll-folder-close.gif';
+        var MLL_TOOLBAR_BUTTON = 'mll-toolbar-button.png';
         </script>";
     }
     
@@ -182,8 +201,8 @@ class MediaLinkedLibrary {
 
         $result = [];
 
-        $destination = preg_replace(['/\.\.\//', '/\.\//', '/^[\/]+/'], '', $_POST['path']);
-        $filenames = array_map(function($v) use($destination){  return $destination . preg_replace("([\s~,;\[\]\(\)])", '_', $v);  }, $_FILES['file']['name']);
+        $destination = $this->pathSecurity($_POST['path'] . '/');
+        $filenames = array_map(function($v) {  return preg_replace("([\s~,;\[\]\(\)])", '_', $v);  }, $_FILES['file']['name']);
 
         // check if file already exists
         $fn = implode("','", $filenames);
@@ -223,11 +242,17 @@ class MediaLinkedLibrary {
         wp_die();
     }
     
-    public function media_upload_dirs(){
-        $res = $this->getUploadPathes();
-        
+    public function media_list_dirs(){
+        $res = $this->getUploadFolders($_POST['dir']);
         echo json_encode($res);
-        
+        wp_die();
+    }
+
+    public function media_create_folder(){
+        global $uploadDir;
+
+        echo $this->createUploadFolder($_POST['name'], $_POST['dir']);
+
         wp_die();
     }
         

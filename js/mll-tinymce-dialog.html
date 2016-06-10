@@ -5,180 +5,80 @@
 		<meta http-equiv="cache-control" content="no-cache" />
 		<meta http-equiv="expires" content="0" />
 		<meta http-equiv="pragma" content="no-cache" />
-        
-        <style type='text/css'>
-            body { font-family: sans-serif; font-size: 1.1em; background-color: #fff; color: #222; margin: 0; padding: 0; }
-            
-            #mll-search label { width: 60px; display: inline-block; font-size: 70%; }
-            #mll-select label { width: 150px; display: inline-block; font-size: 70%; }
-            
-            #search { width: 165px; }
-            #category { width: 110px; padding: 4px 6px; }
-            #upload_folder {width: 160px;padding: 4px 6px; }
-
-            #file { position:absolute; top:0px; left:65px; width:80px; height:30px;opacity:0; z-index:1000 }
-            
-            #mll-search {
-                padding: 0.5em;
-                display: inline-block;
-                border-right: 1px solid #ddd;
-                background-color: #F1F1F1;
-                max-width: 430px;
-                width: 430px;
-            }
-            
-            #mll-select, #mll-noselect {
-                padding: 0.5em;
-                display:inline-block;
-                vertical-align: top;
-                width: 400px;
-            }
-            
-            #mll-action {
-                margin-top: 1em;
-                text-align: right;
-            }
-            
-            .mceActionPanel {
-                text-align: right;
-            }
-            
-            input[type="button"] {
-                background: #f3f3f3;
-                background-image: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#f3f3f3));
-                background-image: -webkit-linear-gradient(top, #fff, #f3f3f3);
-                background-image: -moz-linear-gradient(top, #fff, #f3f3f3);
-                background-image: -ms-linear-gradient(top, #fff, #f3f3f3);
-                background-image: -o-linear-gradient(top, #fff, #f3f3f3);
-                background-image: linear-gradient(to bottom, #fff, #f3f3f3);
-                border-color: #999;
-                padding: 4px;
-                color: #222;
-            }
-            
-            input[type="submit"] {
-                background: #1e8cbe;
-                background: -webkit-gradient(linear, left top, left bottom, from(#1e8cbe), to(#0074a2));
-                background: -webkit-linear-gradient(top, #1e8cbe 0%,#0074a2 100%);
-                background: linear-gradient(top, #1e8cbe 0%,#0074a2 100%);
-                filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1e8cbe', endColorstr='#0074a2',GradientType=0 );
-                border-color: #0074a2;
-                -webkit-box-shadow: inset 0 1px 0 rgba(120,200,230,0.6);
-                box-shadow: inset 0 1px 0 rgba(120,200,230,0.6);
-                color: #fff;
-            }
-            
-            input[type="text"] { padding: 4px 6px; }
-            
-            .mediaContainer {
-                margin-top: 1em;
-                height: 455px;
-                width: 100%;
-                overflow-y: scroll;
-            }
-            
-            .mediaContainer > div{
-                border-bottom: 1px solid #ddd;
-            }
-            
-            .mediaContainer p {
-                font-size:70%;
-            }
-            
-            span.mll-thumbnail {
-                display:inline-block;
-                width:100px;
-                height: 100px;
-                background-size: contain;
-                background-repeat: no-repeat;
-            }
-            
-            span.mll-imagetext {
-                display:inline-block;
-                vertical-align: top;
-                margin-left: 0.5em;
-                word-wrap: break-word;
-                max-width: 270px;
-            }
-            
-            span.mll-imagetext > p {
-                cursor: pointer;
-                margin-bottom:0.3em;
-                font-weight: bold;
-                
-                
-            }
-            span.mll-imagetext > div {
-                font-size: 70%;
-            }
-            
-            span.mll-imagetext > a {
-                font-size: 70%;
-            }
-            
-            .mediaContainer > div {
-                margin-bottom: 0.3em;
-            }
-		</style>
+        <script>
+            document.write('<link rel="stylesheet" type="text/css" href="mll-tinymce-dialog.css?v='+top.MLL_VERSION+'" />');
+        </script>
     </head>
     <body tabindex="0">
-        <div id="mll-search">
-            <div>
-                <label for="search">Search: </label>
-                <input type="text" id="search" name="search" placeholder="Press ENTER to submit" />
-                <label for="category">Category: </label>
-                <select name="category" id="category">
-                    <option value="0">[All]</option>
-                </select>
-            </div>
-            <div style="margin-top: 0.5em;position:relative;">
-                <label for="search">or Upload: </label>
-                <input type="button" value="Select Files" />
-                <input type="file" id="file" name="file" multiple="multiple" style="" />
-                <span style="font-size:70%;">into</span>
-                <select name="upload_folder" id="upload_folder">
-                </select>
-                <input type="button" id="btnUpload" value="Upload" />
-            </div>
-            <div class="mediaContainer">
-                <!-- This container has the search results -->
-                <p style='font-size: 70%; text-align:center;'>Please use the search and select the image to insert</p>
-                <p style='font-size: 70%; text-align:center;'>Use the "Link to Image" button to add a hyperlink</p>
-            </div>
+        <div id="leftContainer">
+            <ul id="tabs">
+                <li>Search</li>
+                <li>Browser</li>
+            </ul>
+            <ul id="tab">
+                <li>
+                    <div>
+                        <label for="search">Search: </label>
+                        <input type="text" id="search" name="search" placeholder="Press ENTER to submit" />
+                    </div>
+                    <div>
+                        <label for="category">Category: </label>
+                        <select name="category" id="category">
+                            <option value="0">[All]</option>
+                        </select>
+                    </div>
+                </li>
+                <li>
+                    <div style="position:relative;">
+                        <label for="selectFile">Upload: </label>
+                        <input type="button" id="selectFile" value="Select Files" />
+                        <input type="file" id="file" name="file" multiple="multiple" style="" />
+                        <span style="font-size:70%;">into</span>
+                        <span id="folderPath"></span>
+                        <div style="position:absolute; right:0px; top:0px"><input type="button" id="btnUpload" value="Upload" /></div>
+                    </div>
+                    <div style="position:relative;"> 
+                        <label for="selectFile">New Folder: </label>
+                        <input type="text" id="newFolder" name="newFolder" placeholder="Enter folder name" />
+                        <div style="position:absolute; right:0px; top:0px"><input type="button" id="btnCreateFolder" value="Create Folder" /></div>
+                    </div>
+                </li>
+            </ul>
+            <div id="mediaContainer"></div>
         </div>
-        <div id="mll-select" style="display: none;">
-            <form>
-            <span class="mll-thumbnail"></span>
-            <span class="mll-imagetext"></span>
-            <div>&nbsp;</div>
-            <label for="link_id">Link ID: </label>
-            <input type="text" id="link_id" name="link_id" size="5" />
-            <div>&nbsp;</div>
-            <label for="link_id">Open in new window</label>
-            <input type="checkbox" id="link_new" name="link_new" value="1" />
-            <div>&nbsp;</div>
-            <label for="img_width">Image Size: </label>
-            <input type="text" id="img_width" name="img_width" size="5" /> x <input type="text" id="img_height" name="img_height" size="5" />
-            <div id="mll-action">
-                <input type="hidden" id="media_id" name="media_id" />
-                <input type="submit" id="insert" name="insert" value="Add or Update" />
-                <input type="button" id="cancel" name="cancel" value="Cancel" onClick="top.tinymce.activeEditor.windowManager.close();" />
+        <div id="rightContainer">
+            <div id="mll-select" style="display: none;">
+                <form>
+                    <span class="mll-thumbnail"></span>
+                    <span class="mll-imagetext"></span>
+                    <div>&nbsp;</div>
+                    <label for="link_id">Link ID: </label>
+                    <input type="text" id="link_id" name="link_id" size="5" />
+                    <div>&nbsp;</div>
+                    <label for="link_id">Open in new window</label>
+                    <input type="checkbox" id="link_new" name="link_new" value="1" />
+                    <div>&nbsp;</div>
+                    <label for="img_width">Image Size: </label>
+                    <input type="text" id="img_width" name="img_width" size="5" /> x <input type="text" id="img_height" name="img_height" size="5" />
+                    <div id="mll-action">
+                        <input type="hidden" id="media_id" name="media_id" />
+                        <input type="submit" id="insert" name="insert" value="Add or Update" />
+                        <input type="button" id="cancel" name="cancel" value="Cancel" onClick="top.tinymce.activeEditor.windowManager.close();" />
+                    </div>
+                </form>
+                <div style="text-align:center;margin-top: 3em;">
+                    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                    <!-- WP Plugins -->
+                    <ins class="adsbygoogle"
+                        style="display:inline-block;width:320px;height:100px"
+                        data-ad-client="ca-pub-0243058286863876"
+                        data-ad-slot="6899864718"></ins>
+                    <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
             </div>
-            </form>
-            <div style="text-align:center;margin-top: 1em;">
-                <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-                <!-- WP Plugins -->
-                <ins class="adsbygoogle"
-                    style="display:inline-block;width:320px;height:100px"
-                    data-ad-client="ca-pub-0243058286863876"
-                    data-ad-slot="6899864718"></ins>
-                <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-            </div>
-        </div>
-        <div id="mll-noselect" style="display:inline-block;vertical-align:top;">
-            <p>No Media selected yet</p>
+            <div id="mll-noselect" style="display:inline-block;vertical-align:top;"></div>
         </div>
         <script type="text/javascript">
             // Pass current document to plugin 'mll_plugin' using initDialog(context) method

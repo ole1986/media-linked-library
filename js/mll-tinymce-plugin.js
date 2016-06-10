@@ -1,13 +1,16 @@
 (function($) {
     var that = null;
+    var context = null;
     tinymce.create('tinymce.plugins.mll_plugin', {
         init: function(editor, url) {
             that = this;
             that.editor = editor;
+            that.lastResult = [];
+            that.curDir = null;
             
             editor.addButton('mll_button', {
                 title: "Media Linked Library", // Tool tip
-                image: url + MLL_IMAGE_BUTTON, // Image button
+                image: MLL_PLUGIN_URL + 'img/' + MLL_TOOLBAR_BUTTON, // Image button
                 cmd: 'mll_command' // command
             });
 
@@ -15,7 +18,7 @@
                 var ts = new Date().getTime();
                 editor.windowManager.open(
                     {
-                        title: "Media Linked Library",   //    The title of the dialog window.
+                        title: "Media Linked Library v" + MLL_VERSION,   //    The title of the dialog window.
                         file:  url + '/mll-tinymce-dialog.html?' + ts,      //    The HTML file with the dialog contents.
                         width: 900,                               //    The width of the dialog
                         height: 550,                              //    The height of the dialog
@@ -56,12 +59,56 @@
             });
         },
         
+        initTabs: function(){
+            $("ul#tabs li", context).click(function(e){
+                if (!$(this).hasClass("active")) {
+                    var tabNum = $(this).index();
+                    var nthChild = tabNum+1;
+                    $("ul#tabs li.active", context).removeClass("active");
+                    $(this).addClass("active");
+                    $("ul#tab li.active", context).removeClass("active");
+                    $("ul#tab li:nth-child("+nthChild+")", context).addClass("active");
+                    that.onTabChanged(tabNum, context);
+                }
+            });
+
+            $("ul#tabs li", context).first().trigger('click');
+        },
+
+        onTabChanged: function(index){
+            $mediaContainer = $('#mediaContainer', context);
+            $mediaContainer.html('');
+
+            switch(index) {
+                case 0:
+                    $('#mll-noselect', context).html('<p>No Media selected yet</p>');
+
+                    if($('#search', context).val() != '' && that.lastResult.length > 0) {
+                        that.showSearchResult(that.lastResult);
+                    } else {
+                        $mediaContainer.append('<p style="text-align:center;">Use the search textbox and press enter to find your image</p>');
+                        $mediaContainer.append('<p style="text-align:center;">You can link the image to various media files by using the "Link to Image" button</p>');
+                    }
+                    break;
+                case 1:
+                    $('#file', context).val('');
+                    $('#mll-select', context).hide();
+                    $('#mll-noselect', context).html('<p style="text-align:center;">Press \'Select Files\' to upload new images</p>').show();
+                    that.showFolders('');
+                    break;
+            }
+        },
+
         /**
          * When dialog is displayed, initialize its content
          */
-        initDialog: function(jq_context){
-            $(jq_context).focus();
-            $(jq_context).keydown(function(e){
+        initDialog: function(ctx){
+            // set the current dialog context
+            context = ctx;
+            that.initTabs();
+
+            $(context).focus();
+            $(context).keydown(function(e){
                 if(e.which == 27) that.editor.windowManager.close();
             });
             
@@ -73,41 +120,41 @@
                 var width = that.getShortcodeParam(selectedNode.title, "width");
                 var height = that.getShortcodeParam(selectedNode.title, "height");
                 
-                that.showMedia( media_id , jq_context);
+                that.showMedia( media_id );
                 
-                that.MediaID(jq_context, media_id);
-                that.LinkID(jq_context, link_id);
-                that.LinkNewWindow(jq_context, newwindow),
-                that.ImageWidth(jq_context, width);
-                that.ImageHeight(jq_context, height);
+                that.MediaID(media_id);
+                that.LinkID(link_id);
+                that.LinkNewWindow(newwindow),
+                that.ImageWidth(width);
+                that.ImageHeight(height);
             }
             
-            $("form", jq_context).submit(function(event) {
+            $("form", context).submit(function(event) {
                     event.preventDefault();
                     
-                    var id = that.MediaID(jq_context);
+                    var id = that.MediaID();
                     var attr = { 
-                        link: that.LinkID(jq_context),
-                        newwindow: that.LinkNewWindow(jq_context),
-                        width: that.ImageWidth(jq_context),
-                        height: that.ImageHeight(jq_context),
+                        link: that.LinkID(),
+                        newwindow: that.LinkNewWindow(),
+                        width: that.ImageWidth(),
+                        height: that.ImageHeight(),
                     };
                     
                     that.insertShortcode( id, attr );
             });
             
-            $('#search', jq_context).keyup(function(e){ 
+            $('#search', context).keyup(function(e){ 
                 var code = e.which;
                 if(code==13) {
                     e.preventDefault();
-                    that.searchMedia(jq_context);
+                    that.searchMedia(context);
                 }
             });
-            $('#search', jq_context).change(function(e){  that.searchMedia(jq_context); });
+            $('#search', context).change(function(e){  that.searchMedia(); });
             
-            $('#category', jq_context).change(function(){ that.searchMedia(jq_context); });
+            $('#category', context).change(function(){ that.searchMedia(); });
             
-            $('#file', jq_context).change(function(){
+            $('#file', context).change(function(){
                 var files = $(this)[0].files;
 
                 var title = "<p>Selected Files</p>";
@@ -117,176 +164,236 @@
                     fileStr += '<div>'+ files[i]['name'] +'</div>';
                 }
 
-                $('.mediaContainer', jq_context).html(title + fileStr);
+                $('#mll-noselect', context).html(title + fileStr);
             })
 
-            $('#btnUpload', jq_context).click(function(){
-                var files = $('#file', jq_context)[0].files;
-                var destination = $('#upload_folder', jq_context).val();
+            $('#btnUpload', context).click(function(){
+                var files = $('#file', context)[0].files;
 
-                $('.mediaContainer', jq_context).html('<p style="text-align: center;font-weight:bold;">Uploading...</p>');
+                $('#mediaContainer', context).html('<p style="text-align: center;font-weight:bold;">Uploading...</p>');
 
-                that.ajax_upload_media( files, destination, function(response){
-                    $('#file', jq_context).val('');
+                that.ajax_upload_media( files, that.curDir, function(response){
+                    $('#file', context).val('');
 
                     console.log(response);
-                    that.showSearchResult(response,jq_context);
+                    that.showSearchResult(response);
                     return;
                 },
-                function(evt){ that.showUploadProgress(evt, jq_context); }
+                function(evt){ that.showUploadProgress(evt); }
                 );
+            });
+
+            $('#btnCreateFolder', context).click(function(){
+                var name = $('#newFolder', context).val();
+                if(name == '') return;
+
+                that.ajax_create_folder(name).done(function(){
+                    that.showFolders(that.curDir);
+                });
             });
 
             // load categories
             that.ajax_taxonomy_get().done(function(list){
                 $.each(list, function(k, o){
-                    $('#category', jq_context).append($('<option>', {value: o.term_id, text: o.name }) );
-                });
-            });
-            
-            that.ajax_upload_dirs().done(function(list){
-                $.each(list, function(k, v) {
-                    $('#upload_folder', jq_context).append($('<option>', {value: v, text: v }));
+                    $('#category', context).append($('<option>', {value: o.term_id, text: o.name }) );
                 });
             });
         },
         
-        MediaID: function(ctx, id){
+        MediaID: function(id){
+            if(context == null) return 'No context found';
+
             if(id == undefined)
-                return $("#media_id", ctx).val();
+                return $("#media_id", context).val();
             else 
-                $("#media_id", ctx).val(id);
+                $("#media_id", context).val(id);
         },
         
-        LinkID: function(ctx, id){
+        LinkID: function(id){
+            if(context == null) throw 'No context found';
+
             if(id == undefined)
-                return $("#link_id", ctx).val();
+                return $("#link_id", context).val();
             else
-                $("#link_id", ctx).val(id);
+                $("#link_id", context).val(id);
         },
         
-        LinkNewWindow: function(ctx, b) {
+        LinkNewWindow: function(b) {
+            if(context == null) throw 'No context found';
+
             if(b == undefined)
-                return $("#link_new", ctx).prop('checked');
+                return $("#link_new", context).prop('checked');
             else
-                $("#link_new", ctx).prop('checked', b);
+                $("#link_new", context).prop('checked', b);
         },
         
-        ImageWidth: function(ctx, value) {
+        ImageWidth: function(value) {
+            if(context == null) throw 'No context found';
+
             if(value == undefined)
-                return $("#img_width", ctx).val();
+                return $("#img_width", context).val();
             else
-                $("#img_width", ctx).val(value);
+                $("#img_width", context).val(value);
         },
         
-        ImageHeight: function(ctx, value) {
+        ImageHeight: function(value) {
+            if(context == null) throw 'No context found';
+
             if(value == undefined)
-                return $("#img_height", ctx).val();
+                return $("#img_height", context).val();
             else
-                $("#img_height", ctx).val(value);
+                $("#img_height", context).val(value);
         },
         
-        showSearchResult: function(data, jq_context){
-            var $mediaContainer = $('.mediaContainer', jq_context);
+        showSearchResult: function(data){
+            if(context == null) throw 'No context found';
+
+            var $mediaContainer = $('#mediaContainer', context);
             $mediaContainer.html('');
-            
+
+            $.each(data, function(i, row) {
+                // original image size
+                var imgSrc = row['path'];
+                if(row.hasOwnProperty('thumbnail'))
+                    imgSrc = row['thumbnail'];
+                
+                if(imgSrc === undefined)
+                    imgSrc = MLL_PLUGIN_URL + 'img/' + MLL_IMAGE_NOTFOUND;
+                else
+                    imgSrc = MLL_UPLOAD_URL + imgSrc;
+
+                $mediaContainer.append( that._addImage(row, imgSrc, that.showMedia, that.LinkID) );
+            });
+        },
+
+        _addImage: function(data, thumbnail, onClick, onLinkClick){
             var container = $("<div />");
             var img = $('<span />', { class: 'mll-thumbnail' });
             var imgtext = $('<span />', { class: 'mll-imagetext' });
             var titletext  = $('<p />', {text: 'No title'});
             var mimetext = $('<div />');
             var linktext = $('<a />', { href: 'javascript:void(0)',text: 'Link with Image' });
-            
+
             img.appendTo(container);
             imgtext.appendTo(container);
             titletext.appendTo(imgtext);
             mimetext.appendTo(imgtext);
             linktext.appendTo(imgtext);
-            
-            titletext.click(function(){
-                var id = $(this).data('ID');
-                that.MediaID(jq_context, id);
-                that.showMedia(id, jq_context);
-            });
-            linktext.click(function(){ that.LinkID(jq_context, $(this).data('ID')) });
-            
-            $.each(data, function(i, row) {
-                // original image size
-                var imgSrc = row['path'];
-                if(row.hasOwnProperty('thumbnail'))
-                {
-                    // if thumbnail is available, use it
-                    imgSrc = row['thumbnail'];
-                }
-                
-                if(imgSrc === undefined)
-                    imgSrc = MLL_PLUGIN_URL + 'js' + MLL_IMAGE_NOTFOUND;
-                else
-                    imgSrc = MLL_UPLOAD_URL + imgSrc;
-                                
-                img.css( 'background-image', 'url('+imgSrc+')' );
-                if(row['exists'] != undefined)
-                    row['post_title'] += " [NOT UPDATED]";
-                titletext.text( row['post_title'] );
-                titletext.data('ID', row['ID']);
-                mimetext.text(row['post_mime_type']);
-                linktext.data('ID', row['ID']);
-                
-                $mediaContainer.append(container.clone(true));
-            });
+
+            img.css( 'background-image', 'url('+thumbnail+')' );
+            if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
+
+            titletext.text( data['post_title'] );
+            mimetext.text( data['post_mime_type']);
+
+            titletext.click(function(){ onClick(data['ID']); });
+            linktext.click(function() { onLinkClick(data['ID']) });
+            return container;
         },
         
-        searchMedia: function(ctx){
-            $('.mediaContainer', ctx).html('<p style="text-align: center">Loading...</p>');
+        searchMedia: function(){
+            if(context == null) throw 'No context found';
+
+            $('#mediaContainer', context).html('<p style="text-align: center">Loading...</p>');
             
-            var search = $('#search', ctx).val();
-            var category = parseInt($('#category', ctx).val());
+            var search = $('#search', context).val();
+            var category = parseInt($('#category', context).val());
             
             if(search.length < 3 && category <= 0) {
-                $('.mediaContainer', ctx).html('<p style="text-align: center;color:red;">Please enter minimum 3 characters</p>');
+                $('#mediaContainer', context).html('<p style="text-align: center;color:red;">Please enter minimum 3 characters</p>');
                 return;
             }
             
-            that.ajax_search_media( search, $('#category', ctx).val() ).done(function(response){
-                that.showSearchResult(response, ctx);
+            that.ajax_search_media( search, $('#category', context).val() ).done(function(response){
+                that.lastResult = response;
+                that.showSearchResult(response);
             });
         },
         
-        showMedia: function(id, ctx){
-            $('#mll-select',ctx).hide();
-            $('#mll-noselect', ctx).show();
-            $('#mll-noselect > p', ctx).text('Loading...');
+        showMedia: function(id){
+            if(context == null) throw 'No context found';
+
+            that.MediaID(id);
+            that.LinkID('');
+
+            $('#mll-select',context).hide();
+            $('#mll-noselect', context).show();
+            $('#mll-noselect > p', context).text('Loading...');
+
             that.ajax_get_media(id).done(function(response){
                 if(!response) {
-                    $('#mll-noselect > p', ctx).text('Invalid media response from server');
+                    $('#mll-noselect > p', context).text('Invalid media response from server');
                     return;
                 }
                 
                 if(response['post_mime_type'].substring(0, 5) != 'image') {
-                    $('#mll-noselect > p', ctx).text('Only images are supported');
+                    $('#mll-noselect > p', context).text('Only images are supported');
                     return;
                 }
                                 
-                $('#mll-select .mll-thumbnail', ctx).css('background-image', 'url('+ MLL_UPLOAD_URL + response['path'] +')');
-                $('#mll-select .mll-imagetext', ctx).text(response['post_title']);
+                $('#mll-select .mll-thumbnail', context).css('background-image', 'url('+ MLL_UPLOAD_URL + response['path'] +')');
+                $('#mll-select .mll-imagetext', context).text(response['post_title']);
                 
-                $('#mll-noselect', ctx).hide();
-                $('#mll-select',ctx).show();
+                $('#mll-noselect', context).hide();
+                $('#mll-select',context).show();
             });
         },
 
-        showUploadProgress: function(evt, ctx){
+        showUploadProgress: function(evt){
+            if(context == null) return;
+
             if (evt.lengthComputable) {
                 var percentComplete =evt.loaded / evt.total;
 
                 percentComplete = parseInt(percentComplete * 100);
                 
-                $('.mediaContainer', ctx).html('<p style="text-align: center;font-weight: bold;">Uploading '+percentComplete+'%</p>');
+                $('#mediaContainer', context).html('<p style="text-align: center;font-weight: bold;">Uploading '+percentComplete+'%</p>');
 
                 if (percentComplete >= 100) {
-                    $('.mediaContainer', ctx).html('<p style="text-align: center">Upload complete<br />Please wait</p>');
+                    $('#mediaContainer', context).html('<p style="text-align: center">Upload complete<br />Please wait</p>');
                 }
             }
+        },
+
+        showFolders: function(dir){
+            if(context == null) throw 'No context found';
+
+            var $mediaContainer = $('#mediaContainer', context); 
+            $mediaContainer.html('');
+
+            that.curDir = dir;
+
+            var parentDir = dir.replace(/\/[^\/]+$/, '');
+
+            $mediaContainer.append( that._addFolder('../', parentDir, function(path) {  that.showFolders(path);  }) );
+
+            that.ajax_list_dirs(dir).done(function(response){
+                for(var i in response) {
+                    var name = response[i];
+                    
+                    $mediaContainer.append( that._addFolder(name, that.curDir + name, function(path) {  that.showFolders(path);  }) );
+                }
+            });
+
+            $('#folderPath', context).text(that.curDir);
+        },
+
+        _addFolder: function(name, path, onclick) {
+            var container = $("<div />");
+            var img = $('<span />', { class: 'mll-thumbnail' });
+            var imgtext = $('<span />', { class: 'mll-imagetext' });
+            var titletext  = $('<p />', {text: 'No title'});
+            
+            img.appendTo(container);
+            imgtext.appendTo(container);
+            titletext.appendTo(imgtext);
+
+            container.data('path', path);
+            img.css({'width': '20px', 'height': '20px', 'background-image': 'url('+ MLL_PLUGIN_URL + 'img/' + MLL_FOLDER_CLOSE +')'});
+            titletext.text(name);
+            titletext.click( function() { onclick(container.data('path')); } );
+
+            return container;
         },
                
         buildShortcode: function(id,attr){
@@ -384,8 +491,13 @@
             return jQuery.post(ajaxurl, data, null, 'json');
         },
         
-        ajax_upload_dirs: function(){
-            var data = {'action': 'media_upload_dirs'};
+        ajax_list_dirs: function(){
+            var data = {'action': 'media_list_dirs', 'dir': that.curDir};
+            return jQuery.post(ajaxurl, data, null, 'json');
+        },
+
+        ajax_create_folder: function(name) {
+            var data = {'action': 'media_create_folder', 'name': name, 'dir': that.curDir};
             return jQuery.post(ajaxurl, data, null, 'json');
         },
         
