@@ -25,6 +25,7 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 1. Toolbar button in content editor to open media linked library dialog
 2. Searching and selecting images in Media linked library
 3. Add links to images using "Link with Image" button
+4. Upload Browser
 
 
 == Changelog ==
