@@ -25,16 +25,14 @@ body { font-family: sans-serif; font-size: 1.1em; background-color: #fff; color:
     padding-left: 0.5em;
 }
 
-#mediaContainer > div{
+.mll-media, .mll-file {
     border-bottom: 1px solid #ddd;
     padding-top: 0.3em;
 }
-
-#mediaContainer p {
+.mll-media p, .mll-file p {
     font-size:70%;
     margin-top: 0;
 }
-
 
 .mceActionPanel {
     text-align: right;

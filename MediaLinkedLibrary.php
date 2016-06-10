@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.4
+Version:     1.0.5
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -52,18 +52,34 @@ class MediaLinkedLibrary {
         
     }
     
-    private function getUploadFolders($root = ''){
-        global $uploadDir;
-        $result = [];
+    /**
+     * Used to receive the current directories from its root (relative to th upload dir)
+     * @param {string} folder path as string
+     * @return {array} list of directories and media ids located in th current folder 
+     */
+    private function getUploadFolders($root = '', $withMedia = false){
+        global $uploadDir, $wpdb;
+        $result = ['folders' => [], 'files' => []];
 
         $root = $this->pathSecurity($root);
 
         $list = glob($uploadDir['basedir'] . '/' . $root .'/*', GLOB_ONLYDIR);
         foreach ($list as $dir) {
-            $result[] = '/'.basename($dir);
+            $result['folders'][] = '/'.basename($dir);
         }
 
-        return $result;
+        if($withMedia)
+        {
+            $quote = "^";
+            if(!empty($root))
+                $quote = preg_quote("{$root}/");
+            $quote .= "[^\/]+$";
+            $post_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value REGEXP '{$quote}'");
+            
+            $result['files'] = $post_ids;
+            return $result;
+        }
+        return $result['folders'];
     }
     
     private function createUploadFolder($name, $root = ''){
@@ -202,29 +218,30 @@ class MediaLinkedLibrary {
         $result = [];
 
         $destination = $this->pathSecurity($_POST['path'] . '/');
-        $filenames = array_map(function($v) {  return preg_replace("([\s~,;\[\]\(\)])", '_', $v);  }, $_FILES['file']['name']);
+        $filepathes = array_map(function($v) use($destination) {  return $destination . $v;  }, $_FILES['file']['name']);
 
         // check if file already exists
-        $fn = implode("','", $filenames);
+        $fn = implode("','", $filepathes);
         $existingAttachments = $wpdb->get_results( "SELECT meta_value, post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value IN('{$fn}')", OBJECT_K);
 
         for ($i=0; $i < $l; $i++) { 
-            $filename = $filenames[$i];
+            $filepath = $filepathes[$i];
+            $filename = &$_FILES['file']['name'][$i];
             // skip file when its already in DB
-            if(in_array($filename, array_keys($existingAttachments))) {
-                $result[] = intval($existingAttachments[$filename]->post_id);
+            if(in_array($filepath, array_keys($existingAttachments))) {
+                $result[] = intval($existingAttachments[$filepath]->post_id);
                 continue;
             }
 
             $tmpname = &$_FILES['file']['tmp_name'][$i];
             $filetype = &$_FILES['file']['type'][$i];
 
-            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $destination . $filename);
+            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $filepath);
             if($movefile) {
                 $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
-                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $destination . $filename);
+                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $filepath);
                 // generate the thumbnail
-                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination . $filename);
+                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $filepath);
                 wp_update_attachment_metadata($attachment_id, $metadata);
 
                 $result[] = $attachment_id; 
@@ -243,7 +260,7 @@ class MediaLinkedLibrary {
     }
     
     public function media_list_dirs(){
-        $res = $this->getUploadFolders($_POST['dir']);
+        $res = $this->getUploadFolders($_POST['dir'], true);
         echo json_encode($res);
         wp_die();
     }
