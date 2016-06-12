@@ -30,7 +30,7 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 
 == Changelog ==
 = v1.0.5 =
-- show media in file browser
+- show media files browser tab
 
 = v1.0.4 =
 - added a file browser (with create folder support)
