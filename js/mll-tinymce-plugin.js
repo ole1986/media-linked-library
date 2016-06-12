@@ -174,9 +174,7 @@
 
                 that.ajax_upload_media( files, that.curDir, function(response){
                     $('#file', context).val('');
-
-                    console.log(response);
-                    that.showSearchResult(response);
+                    that.showSearchResult(response, 'mll-noselect');
                     return;
                 },
                 function(evt){ that.showUploadProgress(evt); }
@@ -245,10 +243,15 @@
                 $("#img_height", context).val(value);
         },
         
-        showSearchResult: function(data){
+        showSearchResult: function(data, elementId){
             if(context == null) throw 'No context found';
 
-            var $mediaContainer = $('#mediaContainer', context);
+            var $mediaContainer = null;
+            if(elementId)
+                $mediaContainer = $('#' + elementId, context);
+            else
+                $mediaContainer = $('#mediaContainer', context);
+
             $mediaContainer.html('');
 
             $.each(data, function(i, row) {
@@ -267,7 +270,7 @@
         },
 
         _addImage: function(data, thumbnail, onClick, onLinkClick){
-            var container = $("<div />");
+            var container = $("<div />", {class: 'mll-media'});
             var img = $('<span />', { class: 'mll-thumbnail' });
             var imgtext = $('<span />', { class: 'mll-imagetext' });
             var titletext  = $('<p />', {text: 'No title'});
@@ -350,7 +353,7 @@
                 $('#mediaContainer', context).html('<p style="text-align: center;font-weight: bold;">Uploading '+percentComplete+'%</p>');
 
                 if (percentComplete >= 100) {
-                    $('#mediaContainer', context).html('<p style="text-align: center">Upload complete<br />Please wait</p>');
+                    $('#mediaContainer', context).html('<p style="text-align: center">Upload complete</p>');
                 }
             }
         },
@@ -364,22 +367,36 @@
             that.curDir = dir;
 
             var parentDir = dir.replace(/\/[^\/]+$/, '');
+            var currentDir = that.curDir;
 
-            $mediaContainer.append( that._addFolder('../', parentDir, function(path) {  that.showFolders(path);  }) );
+            $mediaContainer.append( that._addFolder('../ [parent]', parentDir, function(path) {  that.showFolders(path);  }) );
+            $mediaContainer.append( that._addFolder('./ [current]', currentDir, function(path) {  that.showFolders(path);  }) );
 
             that.ajax_list_dirs(dir).done(function(response){
-                for(var i in response) {
-                    var name = response[i];
+                for(var i in response['folders']) {
+                    var name = response['folders'][i];
                     
                     $mediaContainer.append( that._addFolder(name, that.curDir + name, function(path) {  that.showFolders(path);  }) );
                 }
+
+                $('#mll-select', context).hide();
+                $('#mll-noselect', context).show().html('<p>Loading...</p>');
+
+                if(response['files'].length <= 0) {
+                    $('#mll-noselect', context).html('<p>Nothing to display</p>');
+                    return;
+                } 
+
+                that.ajax_get_media(response['files']).done(function(data){ 
+                    that.showSearchResult(data, 'mll-noselect'); 
+                });
             });
 
             $('#folderPath', context).text(that.curDir);
         },
 
         _addFolder: function(name, path, onclick) {
-            var container = $("<div />");
+            var container = $("<div />", {class: 'mll-file'});
             var img = $('<span />', { class: 'mll-thumbnail' });
             var imgtext = $('<span />', { class: 'mll-imagetext' });
             var titletext  = $('<p />', {text: 'No title'});
@@ -441,8 +458,8 @@
          * receive media information by passing its attachment_id containing: [ID, post_title, relative URL path]
          * @param {integer} id the attachment ID
          */
-        ajax_get_media: function(id){
-            var data = {'action': 'media_get', 'media_id': id};
+        ajax_get_media: function(ids){
+            var data = {'action': 'media_get', 'media_id': ids};
             return jQuery.post(ajaxurl, data, null, 'json');
         },
         

@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.4
+Version:     1.0.5
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -22,11 +22,14 @@ if(!defined('WP_UPLOAD_URI')) {
 }
 
 class MediaLinkedLibrary {
-
+    
+    /**
+     * media taxonomy used by other plugins
+     */
     public static $taxonomy = 'media_category';
 
     public function __construct(){
-        // some global JS
+        // define some JS constants using script_header hook
         add_action('admin_head', array(&$this, 'script_header'));
         
         // TinyMCC Editor button and media plugin      
@@ -52,18 +55,34 @@ class MediaLinkedLibrary {
         
     }
     
-    private function getUploadFolders($root = ''){
-        global $uploadDir;
-        $result = [];
+    /**
+     * Used to receive the current directories from its root (relative to th upload dir)
+     * @param {string} folder path as string
+     * @return {array} list of directories and media ids located in th current folder 
+     */
+    private function getUploadFolders($root = '', $withMedia = false){
+        global $uploadDir, $wpdb;
+        $result = ['folders' => [], 'files' => []];
 
         $root = $this->pathSecurity($root);
 
         $list = glob($uploadDir['basedir'] . '/' . $root .'/*', GLOB_ONLYDIR);
         foreach ($list as $dir) {
-            $result[] = '/'.basename($dir);
+            $result['folders'][] = '/'.basename($dir);
         }
 
-        return $result;
+        if($withMedia)
+        {
+            $quote = "^";
+            if(!empty($root))
+                $quote = preg_quote("{$root}/");
+            $quote .= "[^\/]+$";
+            $post_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value REGEXP '{$quote}'");
+            
+            $result['files'] = $post_ids;
+            return $result;
+        }
+        return $result['folders'];
     }
     
     private function createUploadFolder($name, $root = ''){
@@ -82,7 +101,7 @@ class MediaLinkedLibrary {
     }
 
     /**
-     * Some global JS variabled being used by mll-tinymce-plugin.js
+     * Output some JS constants used by mll-tinymce-plugin.js
      */
     public function script_header(){
         $pluginData = get_plugin_data( __FILE__ );
@@ -99,6 +118,7 @@ class MediaLinkedLibrary {
     
     /**
      * TinyMCE: Used to register the TinyMCE Editor button (with an image)
+     * @param {array} list of all tinyMCE tool buttons
      */
     public function register_tinymce_button( $button_array ) {
         global $current_screen; //  WordPress contextual information about where we are.
@@ -114,6 +134,7 @@ class MediaLinkedLibrary {
     
     /**
      * TinyMCE: Register the new plugin 'mll_plugin' for TinyMCE
+     * @param {array} list of all registered tinyMCE plugins
      */
     public function register_tinymce_plugin( $plugin_array ) {
         global $current_screen; //  WordPress contextual information about where we are.
@@ -169,6 +190,9 @@ class MediaLinkedLibrary {
         return $result;
     }
     
+    /**
+     * AJAX: Use ajax callback to return taxonomies elements
+     */ 
     public function taxonomy_get_callback(){
         $terms = get_terms(['taxonomy' => self::$taxonomy, 'hide_empty' => 0]);
         
@@ -177,6 +201,12 @@ class MediaLinkedLibrary {
         
         wp_die();
     }
+
+    /**
+     * AJAX: return the requested media objects as JSON array
+     * POST Parameter:
+     * - media_id {mixed} a single attachment id or multiple ids as 1-dimensional array
+     */
     public function media_get_callback(){
         $media = $this->getMedia($_POST['media_id'], true);
         echo json_encode($media);
@@ -184,6 +214,12 @@ class MediaLinkedLibrary {
         wp_die();
     }
     
+    /**
+     * AJAX: Search request to search for post title and filter by categories
+     * POST Paramater:
+     * - filter {string} filter string searching in post_title only
+     * - category {integer} category id to filter on 
+     */
     public function media_search_callback(){
         $mediaList = $this->searchMedia($_POST['filter'], $_POST['category'], [0,10], true, true);
         echo json_encode($mediaList);
@@ -191,6 +227,12 @@ class MediaLinkedLibrary {
         wp_die();
     }
     
+    /**
+     * AJAX: Upload files using ajax FormData
+     * POST Params:
+     * - file {array} list of files using input - tag (multiple supported)
+     * - path {string} destination folder relative to uploadDir of WP
+     */
     public function media_upload_callback(){
         global $uploadDir, $wpdb;
 
@@ -202,29 +244,30 @@ class MediaLinkedLibrary {
         $result = [];
 
         $destination = $this->pathSecurity($_POST['path'] . '/');
-        $filenames = array_map(function($v) {  return preg_replace("([\s~,;\[\]\(\)])", '_', $v);  }, $_FILES['file']['name']);
+        $filepathes = array_map(function($v) use($destination) {  return $destination . $v;  }, $_FILES['file']['name']);
 
         // check if file already exists
-        $fn = implode("','", $filenames);
+        $fn = implode("','", $filepathes);
         $existingAttachments = $wpdb->get_results( "SELECT meta_value, post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value IN('{$fn}')", OBJECT_K);
 
         for ($i=0; $i < $l; $i++) { 
-            $filename = $filenames[$i];
+            $filepath = $filepathes[$i];
+            $filename = &$_FILES['file']['name'][$i];
             // skip file when its already in DB
-            if(in_array($filename, array_keys($existingAttachments))) {
-                $result[] = intval($existingAttachments[$filename]->post_id);
+            if(in_array($filepath, array_keys($existingAttachments))) {
+                $result[] = intval($existingAttachments[$filepath]->post_id);
                 continue;
             }
 
             $tmpname = &$_FILES['file']['tmp_name'][$i];
             $filetype = &$_FILES['file']['type'][$i];
 
-            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $destination . $filename);
+            $movefile = move_uploaded_file( $tmpname, $uploadDir['basedir'] . '/' . $filepath);
             if($movefile) {
                 $title = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename );
-                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $destination . $filename);
+                $attachment_id = wp_insert_attachment( ['post_title' => $title, 'post_mime_type' => $filetype ], $filepath);
                 // generate the thumbnail
-                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destination . $filename);
+                $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $filepath);
                 wp_update_attachment_metadata($attachment_id, $metadata);
 
                 $result[] = $attachment_id; 
@@ -242,20 +285,28 @@ class MediaLinkedLibrary {
         wp_die();
     }
     
+    /**
+     * AJAX: List of directories and media files (ids only)
+     */
     public function media_list_dirs(){
-        $res = $this->getUploadFolders($_POST['dir']);
+        $res = $this->getUploadFolders($_POST['dir'], true);
         echo json_encode($res);
         wp_die();
     }
 
+    /**
+     * AJAX: Used to create a folder in $_POST['dir'] relative to WP uploadDir
+     */
     public function media_create_folder(){
         global $uploadDir;
 
         echo $this->createUploadFolder($_POST['name'], $_POST['dir']);
-
         wp_die();
     }
         
+    /**
+     * Search request showing the first X items
+     */
     private function searchMedia($filter, $category, $limit = [0,10], $withThumbnail = false, $withPath = false) {
         global $wpdb;
         
@@ -285,6 +336,9 @@ class MediaLinkedLibrary {
         return [];
     }
     
+    /**
+     * Internal call to receive the media object incl. file path and thumbnail info
+     */
     private function getMedia($media_ids, $withMetadata = false) {
         if(is_array($media_ids))
         {
@@ -312,7 +366,9 @@ class MediaLinkedLibrary {
         }
     }   
     
-    // MEDIA: BULK ACTION ALLOW CATEGORIES FROM MEDIA LIST - START
+    /**
+     * MEDIA: Display taxonomy (if available) in Media library DropDown list for BulkActions (category)
+     */
     public function media_bulkaction_category() {
         global $pagenow;
         if($pagenow != 'upload.php') return;
@@ -334,6 +390,9 @@ class MediaLinkedLibrary {
         <?php
     }
     
+    /**
+     * MEDIA: Manage BulkAction when taxonomy is selected (category)
+     */
     public function media_bulkaction_submit() {
         if (isset( $_REQUEST['detached']) ) return;
 
@@ -369,7 +428,6 @@ class MediaLinkedLibrary {
         wp_redirect($sendback);
         exit();
     }
-    // MEDIA: BULK ACTION ALLOW CATEGORIES FROM MEDIA LIST - END
 }
 
 new MediaLinkedLibrary();
