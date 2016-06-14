@@ -7,18 +7,24 @@ Tested up to: 4.5.2
 Stable tag: trunk
 License: GPLv3
 
-Support for adding media files to page/post content using the IDs instead of URLs
+Support for adding media files to post content using IDs instead of URLs (through TinyMCE Editor)
 
 == Description ==
 This plugin is used to improve the media library by adding media or attachment IDs instead of static URLs into the content editor (TinyMCE)
 
-It also comes with shotcode and a TinyMCE plugin used to search and manage the images from the media library
+Features:
+- fully compatible with the native WP Media Library
+- search and filter for images using search text or categories*
+- file browser to upload and select file(s) from specific folders
+- integration into TinyMCE using plugin extension
+- upload multiple files (of any type)
+- automatically generate thumbnails from PDF documents (ImageMagick required)
+- shortcode [mediaref id=123 width=100 height=100]
 
-In addition to this the "Media Linked Library" is compatible with the media categories from "Enhanced Media Library" (https://wordpress.org/plugins/enhanced-media-library/)
-
+* Categories can by achieved by using the plugin "Enhanced Media Library" for instance (https://wordpress.org/plugins/enhanced-media-library/)
 
 == Installation ==
-Add it through wordpress or unpack the downloaded zip file into wp-content/plugins directory
+Add it through wordpress or unpack the downloaded zip file into your wp-content/plugins directory
 
 == Screenshots ==
 
@@ -26,7 +32,6 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 2. Searching and selecting images in Media linked library
 3. Add links to images using "Link with Image" button
 4. Upload Browser
-
 
 == Changelog ==
 = v1.0.6 =
