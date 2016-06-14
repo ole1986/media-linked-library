@@ -175,6 +175,7 @@
                 that.ajax_upload_media( files, that.curDir, function(response){
                     $('#file', context).val('');
                     that.showSearchResult(response, 'mll-noselect');
+                    that.showFolders(that.curDir);
                     return;
                 },
                 function(evt){ that.showUploadProgress(evt); }
@@ -291,6 +292,7 @@
 
             titletext.click(function(){ onClick(data['ID']); });
             linktext.click(function() { onLinkClick(data['ID']) });
+            linktext.attr('title', 'ID: ' + data['ID']);
             return container;
         },
         
@@ -353,7 +355,7 @@
                 $('#mediaContainer', context).html('<p style="text-align: center;font-weight: bold;">Uploading '+percentComplete+'%</p>');
 
                 if (percentComplete >= 100) {
-                    $('#mediaContainer', context).html('<p style="text-align: center">Upload complete</p>');
+                    $('#mediaContainer', context).html('<p style="text-align: center">Upload complete<br />Please wait...</p>');
                 }
             }
         },

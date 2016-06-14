@@ -271,6 +271,13 @@ class MediaLinkedLibrary {
                 $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $filepath);
                 wp_update_attachment_metadata($attachment_id, $metadata);
 
+                // generate thumbnail from PDF
+                if($filetype == 'application/pdf') {
+                    $preview_id = $this->saveThumbnailFromPDF($filepath, $title);
+                    if($preview_id > 0) $result[] = $preview_id;
+                }
+                
+
                 $result[] = $attachment_id; 
             }
         }
@@ -304,7 +311,30 @@ class MediaLinkedLibrary {
         echo $this->createUploadFolder($_POST['name'], $_POST['dir']);
         wp_die();
     }
+
+    private function saveThumbnailFromPDF($filepath, $title){
+        global $uploadDir;
+
+        if (!extension_loaded('imagick')) return 0;
+
+        $imagick = new Imagick($uploadDir['basedir'] . '/'. $filepath);
+        $imagick->setIteratorIndex(0);
+        $imagick->setImageOpacity(1); 
+        $imagick->setImageCompressionQuality(40);
+        $imagick->thumbnailImage(300,null); 
+        $imagick->setImageFormat('png');
         
+        $destFile = preg_replace("/\.pdf$/i", '-image.png', $filepath);
+        $success = $imagick->writeImage($uploadDir['basedir'] . '/' . $destFile);
+        if(!$success) return 0;
+
+        $attachment_id = wp_insert_attachment( ['post_title' => $title . ' (thumbnail)', 'post_mime_type' => 'image/png' ], $destFile);
+        $metadata = wp_generate_attachment_metadata($attachment_id, $uploadDir['basedir'] . '/' . $destFile);
+        wp_update_attachment_metadata($attachment_id, $metadata);
+
+        return $attachment_id;
+    }
+
     /**
      * Search request showing the first X items
      */
