@@ -29,6 +29,9 @@ Add it through wordpress or unpack the downloaded zip file into wp-content/plugi
 
 
 == Changelog ==
+= v1.0.6 =
+- fixed issue with white spaces in URLs using encodeURI
+
 = v1.0.5 =
 - show media files in browser tab
 

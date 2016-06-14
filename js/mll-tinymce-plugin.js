@@ -283,7 +283,7 @@
             mimetext.appendTo(imgtext);
             linktext.appendTo(imgtext);
 
-            img.css( 'background-image', 'url('+thumbnail+')' );
+            img.css( 'background-image', 'url('+encodeURI(thumbnail)+')' );
             if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
 
             titletext.text( data['post_title'] );
@@ -334,7 +334,7 @@
                     return;
                 }
                                 
-                $('#mll-select .mll-thumbnail', context).css('background-image', 'url('+ MLL_UPLOAD_URL + response['path'] +')');
+                $('#mll-select .mll-thumbnail', context).css('background-image', 'url('+ MLL_UPLOAD_URL + encodeURI(response['path']) +')');
                 $('#mll-select .mll-imagetext', context).text(response['post_title']);
                 
                 $('#mll-noselect', context).hide();
@@ -442,7 +442,7 @@
         
         insertShortcode: function(id, attr){
             that.ajax_get_media(id).done(function(response){
-                attr['path'] = response['path'];
+                attr['path'] = encodeURI(response['path']);
                 // build the shortcode with attributes (incl. relative path)
                 var shortcode = that.buildShortcode(id, attr);
                 
