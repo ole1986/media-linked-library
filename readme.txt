@@ -41,6 +41,10 @@ Add it through wordpress or unpack the downloaded zip file into your wp-content/
 4. Upload Browser
 
 == Changelog ==
+
+= v1.0.8 =
+- lightbox support by adding rel attribute in A tag (Lightbox plugin is possible required)
+
 = v1.0.7 =
 - fixed an issue when only width or height is defined in image size
 
