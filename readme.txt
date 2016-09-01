@@ -3,7 +3,7 @@ Contributors: ole1986
 Tags: media, library, linked media, links, content editor, shortcode, tinymce
 Donate link: https://www.paypal.me/OleKoeckemann/5
 Requires at least: 4.0.0
-Tested up to: 4.5.2
+Tested up to: 4.6
 Stable tag: trunk
 License: GPLv3
 
@@ -41,6 +41,9 @@ Add it through wordpress or unpack the downloaded zip file into your wp-content/
 4. Upload Browser
 
 == Changelog ==
+= v1.0.7 =
+- fixed an issue when only width or height is defined in image size
+
 = v1.0.6 =
 - fixed issue with white spaces in URLs using encodeURI
 - added support to generate thumbnails from PDFs (Image Magick is required)

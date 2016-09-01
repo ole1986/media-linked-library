@@ -538,8 +538,13 @@
                 
                 var w = that.getShortcodeParam(e, 'width');
                 var h = that.getShortcodeParam(e, 'height');
-                 
-                return '<img src="' + imgSrc + '" width="'+w+'" height="'+h+'" class="media_reference mceItem" title="mediaref' + tinymce.DOM.encode(e) + '" />';
+                
+                var result = '<img src="' + imgSrc + '" style="';
+                if(w) result += 'width:'+w+'px;';
+                if(h) result += 'height:'+h+'px;';
+                result += '" class="media_reference mceItem" title="mediaref' + tinymce.DOM.encode(e) + '" />';
+
+                return result;
             })
         },
         

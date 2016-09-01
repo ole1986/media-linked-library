@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.6
+Version:     1.0.7
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -161,11 +161,20 @@ class MediaLinkedLibrary {
         
         $dir = dirname($imgmeta['file']);
         $best = ['height' => $imgmeta['height'], 'width' => $imgmeta['width'], 'file' => $imgmeta['file']];
-        
-        if(count($imgmeta['sizes']) > 0 && $w > 0 && $h > 0) {
+        //print_r($imgmeta);
+        if(count($imgmeta['sizes']) > 0 && ($w > 0 || $h > 0) ) {
              foreach($imgmeta['sizes'] as $ident => $prop) {
-                if(($prop['width'] >= $w && $prop['height'] >= $h) && ($best['width'] > $prop['width'] && $best['height'] > $prop['height']))
-                    $best = ['width' => $prop['width'], 'height' => $prop['height'], 'file' => $dir .'/' . $prop['file']];
+                 $prop['file'] = $dir .'/' . $prop['file'];
+
+                 if(($w > 0 && !$h) && $prop['width'] >= $w && $best['width'] > $prop['width']) {
+                     // only width is defined
+                    $best = $prop;
+                 } else if(($h > 0 && !$w) && $prop['height'] >= $h && $best['height'] > $prop['height']) {
+                     // only height is defined
+                     $best = $prop;
+                 } else if(($prop['width'] >= $w && $prop['height'] >= $h) && ($best['width'] > $prop['width'] && $best['height'] > $prop['height'])) {
+                    $best = $prop;
+                 }
             }
         }
         
