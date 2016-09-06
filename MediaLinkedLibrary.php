@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.9
+Version:     1.0.10
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -139,10 +139,12 @@ class MediaLinkedLibrary {
     public function register_tinymce_plugin( $plugin_array ) {
         global $current_screen; //  WordPress contextual information about where we are.
 
+        $pluginData = get_plugin_data( __FILE__ );
+
         $type = $current_screen->post_type;
         
         if( is_admin() ) {
-            $plugin_array['mll_plugin'] = MLL_ROOT_URL . 'js/mll-tinymce-plugin.js';
+            $plugin_array['mll_plugin'] = MLL_ROOT_URL . 'js/mll-tinymce-plugin.js' . '?ver=' . $pluginData['Version'];
         }
 
         return $plugin_array;
