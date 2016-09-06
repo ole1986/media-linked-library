@@ -42,6 +42,9 @@ Add it through wordpress or unpack the downloaded zip file into your wp-content/
 
 == Changelog ==
 
+= v1.0.9 =
+- fixed wrong media file output when selecting folders from browser 
+
 = v1.0.8 =
 - lightbox support by adding rel attribute in A tag (Lightbox plugin is possible required)
 
