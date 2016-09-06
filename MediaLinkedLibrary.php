@@ -190,7 +190,7 @@ class MediaLinkedLibrary {
         $style = '';
         if($w > 0) $style.= "width:{$w}px;";
         if($h > 0) $style.= "height:{$h}px;";
-        $result.= '<img src="'. WP_UPLOAD_URI .'/' . $best['file'].'" style="' . $style . '" />';
+        $result.= '<img src="'. WP_UPLOAD_URI .'/' . $best['file'].'" style="' . $style . '" class="'.$attr['class'].'" />';
         
         if(isset($attr['link'])) $result.= '</a>';
         

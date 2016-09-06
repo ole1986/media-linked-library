@@ -32,17 +32,31 @@
                     that.editor.execCommand("mll_command");
                 } 
             });
-            
+
+            editor.on('ExecCommand', function(ed) {               
+                var allowed = {JustifyLeft: 'alignleft', JustifyCenter: 'aligncenter', JustifyRight: 'alignright'};
+
+                var img = that.editor.dom.select('img')[0];
+                if(img !== null && jQuery(img).hasClass("media_reference") && allowed.hasOwnProperty(ed.command) ) {
+
+                    var params = that.getShortcodeParams(img.title);                   
+                    params['class'] = allowed[ed.command];
+
+                    var s = that.buildShortcode(params.id, params);
+                    img.title = s.substring(1, s.length - 1);
+                }
+            });
+
+
             editor.on('ObjectResized', function(e) {
                 if(e.target.nodeName == "IMG" && tinymce.activeEditor.dom.hasClass(e.target, "media_reference")) {
                     
-                    var id = that.getShortcodeParam(e.target.title, 'id');
-                    var path = that.getShortcodeParam(e.target.title, 'path');
-                    var link = that.getShortcodeParam(e.target.title, 'link');
+                    var params = that.getShortcodeParams(e.target.title);
                     
-                    var attr = { link: link, path: path, width: e.target.width, height: e.target.height };
+                    params['height'] = img.height;
+                    params['width'] = img.width;
                     
-                    var s = that.buildShortcode(id, attr);
+                    var s = that.buildShortcode(params.id, params);
                     e.target.title = s.substring(1, s.length - 1);
                 }
                     
@@ -114,19 +128,15 @@
             
             var selectedNode = that.editor.selection.getNode();
             if (selectedNode.nodeName == "IMG" && that.editor.dom.hasClass(selectedNode, "media_reference")) {
-                var media_id = that.getShortcodeParam(selectedNode.title, "id");
-                var link_id = that.getShortcodeParam(selectedNode.title, "link");
-                var newwindow = that.getShortcodeParam(selectedNode.title, "newwindow");
-                var width = that.getShortcodeParam(selectedNode.title, "width");
-                var height = that.getShortcodeParam(selectedNode.title, "height");
+                var params = that.getShortcodeParams(selectedNode.title);
+
+                that.showMedia( params.id );
                 
-                that.showMedia( media_id );
-                
-                that.MediaID(media_id);
-                that.LinkID(link_id);
-                that.LinkNewWindow(newwindow),
-                that.ImageWidth(width);
-                that.ImageHeight(height);
+                that.MediaID( params.id );
+                that.LinkID( params.link );
+                that.LinkNewWindow( params.newwindow ),
+                that.ImageWidth( params.width );
+                that.ImageHeight( params.height );
             }
             
             $("form", context).submit(function(event) {
@@ -427,19 +437,14 @@
             s += ']';
             return s;
         },
-        
-        getShortcodeParam: function(s, name) {
-            if(name == 'id' || name == 'link' || name == 'width' || name == 'height') {
-                d = new RegExp(name + '=([0-9]+)').exec(s);
-                return d ? parseInt(d[1]) : null;
-            } else if(name == "newwindow") {
-                d = new RegExp(name + '=(true|false)').exec(s);
-                return (d != null && d[1] === 'true') ? true : false;
-            } else if(name == "path") {
-                d = new RegExp(name + "=\"?(.*?)\"?(\\s|$)").exec(s);
-                return d ? d[1] : null;
+
+        getShortcodeParams: function(s) {
+            var reg = /([a-z]+)=(.*?)(\s|$)/g;
+            var result = {};
+            while ((match = reg.exec(s)) !== null) {
+                result[ match[1] ] = match[2];
             }
-            return null;
+            return result;
         },
         
         insertShortcode: function(id, attr){
@@ -532,17 +537,19 @@
             return ed.replace(/\[mediaref([^\]]*)\]/g, function (d, e) {
                 var imgSrc = MLL_PLUGIN_URL + "js" + MLL_IMAGE_NOTFOUND;
                 
-                var p = that.getShortcodeParam(e, 'path');
-                if(p != undefined)
-                    imgSrc = MLL_UPLOAD_URL + p;
-                
-                var w = that.getShortcodeParam(e, 'width');
-                var h = that.getShortcodeParam(e, 'height');
-                
+                var params = that.getShortcodeParams( e );
+
+                if(params.path != undefined)
+                    imgSrc = MLL_UPLOAD_URL + params.path;
+
                 var result = '<img src="' + imgSrc + '" style="';
-                if(w) result += 'width:'+w+'px;';
-                if(h) result += 'height:'+h+'px;';
-                result += '" class="media_reference mceItem" title="mediaref' + tinymce.DOM.encode(e) + '" />';
+                if(params.width) result += 'width:'+ params.width +'px;';
+                if(params.height) result += 'height:'+ params.height +'px;';
+
+                result += '" class="media_reference mceItem';
+                if(params.class) result += ' ' + params.class;
+
+                result += '" title="mediaref' + tinymce.DOM.encode(e) + '" />';
 
                 return result;
             })
