@@ -33,8 +33,9 @@
                 } 
             });
 
-            editor.on('ExecCommand', function(ed) {               
-                var allowed = {JustifyLeft: 'alignleft', JustifyCenter: 'aligncenter', JustifyRight: 'alignright'};
+            editor.on('ExecCommand', function(ed) {
+                console.log(ed.command);
+                var allowed = {wpAlignNone: '', JustifyLeft: 'alignleft', JustifyCenter: 'aligncenter', JustifyRight: 'alignright'};
 
                 var img = that.editor.dom.select('img')[0];
                 if(img !== null && jQuery(img).hasClass("media_reference") && allowed.hasOwnProperty(ed.command) ) {
