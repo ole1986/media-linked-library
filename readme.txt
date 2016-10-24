@@ -42,6 +42,9 @@ Add it through wordpress or unpack the downloaded zip file into your wp-content/
 
 == Changelog ==
 
+= v1.0.11 =
+- ignore lightbox when opening in new window (useful for linked PDFs)
+
 = v1.0.10 =
 - possible hotfix when cached JS file is being loaded
 

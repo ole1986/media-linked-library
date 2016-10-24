@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.10
+Version:     1.0.11
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -183,10 +183,10 @@ class MediaLinkedLibrary {
         $result = '<p>';
         if(isset($attr['link'])) {
             $link = get_post_meta(intval($attr['link']), '_wp_attached_file',true);
-            $newwnd = '';
+            $params = 'rel="lightbox"';
             if(isset($attr['newwindow']) && $attr['newwindow'] == 'true')
-                $newwnd = '_blank';
-            $result.= sprintf('<a href="%s" target="%s" rel="lightbox">', WP_UPLOAD_URI . '/' .  $link, $newwnd);
+                $params = 'target="_blank"';
+            $result.= sprintf('<a href="%s" %s>', WP_UPLOAD_URI . '/' .  $link, $params);
         }
         
         $style = '';
