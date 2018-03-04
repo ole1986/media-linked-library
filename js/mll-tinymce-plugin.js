@@ -96,7 +96,7 @@
 
             switch(index) {
                 case 0:
-                    $('#mll-noselect', context).html('<p>No Media selected yet</p>');
+                    $('#mll-noselect', context).html('<div>No Media selected yet</div>');
 
                     if($('#search', context).val() != '' && that.lastResult.length > 0) {
                         that.showSearchResult(that.lastResult);
@@ -107,7 +107,6 @@
                     break;
                 case 1:
                     $('#file', context).val('');
-                    $('#mll-select', context).hide();
                     $('#mll-noselect', context).html('<p style="text-align:center;">Press \'Select Files\' to upload new images</p>').show();
                     that.showFolders('');
                     break;
@@ -283,25 +282,28 @@
 
         _addImage: function(data, thumbnail, onClick, onLinkClick){
             var container = $("<div />", {class: 'mll-media'});
-            var img = $('<span />', { class: 'mll-thumbnail' });
-            var imgtext = $('<span />', { class: 'mll-imagetext' });
-            var titletext  = $('<p />', {text: 'No title'});
-            var mimetext = $('<div />');
-            var linktext = $('<a />', { href: 'javascript:void(0)',text: 'Link with Image' });
+            //var img = $('<div />', { class: 'mll-thumbnail' });
+            var imgtext = $('<div />', { class: 'mll-imagetext' });
+            var titletext = $('<div />');
+            var mimetext = $('<p />');
+            var linktext = $('<a />', { href: 'javascript:;',text: 'Link to selection' });
 
-            img.appendTo(container);
+            //img.appendTo(container);
             imgtext.appendTo(container);
+
+            container.css({'background': 'url('+encodeURI(thumbnail)+') no-repeat', 'background-size':'auto 80px'} );
+
+            if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
+
+            titletext.click(function(){ onClick(data['ID']); });
+            titletext.text(data['post_title']);
             titletext.appendTo(imgtext);
+
             mimetext.appendTo(imgtext);
             linktext.appendTo(imgtext);
 
-            img.css( 'background-image', 'url('+encodeURI(thumbnail)+')' );
-            if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
-
-            titletext.text( data['post_title'] );
             mimetext.text( data['post_mime_type']);
 
-            titletext.click(function(){ onClick(data['ID']); });
             linktext.click(function() { onLinkClick(data['ID']) });
             linktext.attr('title', 'ID: ' + data['ID']);
             return container;
@@ -332,25 +334,19 @@
             that.MediaID(id);
             that.LinkID('');
 
-            $('#mll-select',context).hide();
-            $('#mll-noselect', context).show();
-            $('#mll-noselect > p', context).text('Loading...');
-
             that.ajax_get_media(id).done(function(response){
                 if(!response) {
-                    $('#mll-noselect > p', context).text('Invalid media response from server');
+                    $('#mll-select .mll-imagetext', context).text('Invalid media response from server');
                     return;
                 }
                 
                 if(response['post_mime_type'].substring(0, 5) != 'image') {
-                    $('#mll-noselect > p', context).text('Only images are supported');
+                    $('#mll-select .mll-imagetext', context).html('<span style="color: red">only images supported</span>');
                     return;
                 }
                                 
                 $('#mll-select .mll-thumbnail', context).css('background-image', 'url('+ MLL_UPLOAD_URL + encodeURI(response['path']) +')');
                 $('#mll-select .mll-imagetext', context).text(response['post_title']);
-                
-                $('#mll-noselect', context).hide();
                 $('#mll-select',context).show();
             });
         },
@@ -392,11 +388,10 @@
                     $mediaContainer.append( that._addFolder(name, that.curDir + name, function(path) {  that.showFolders(path);  }) );
                 }
 
-                $('#mll-select', context).hide();
-                $('#mll-noselect', context).show().html('<p>Loading...</p>');
+                $('#mll-noselect', context).show().html('<div>Loading...</div>');
 
                 if(response['files'].length <= 0) {
-                    $('#mll-noselect', context).html('<p>Nothing to display</p>');
+                    $('#mll-noselect', context).html('<div>Nothing to display</div>');
                     return;
                 } 
 
@@ -410,18 +405,14 @@
 
         _addFolder: function(name, path, onclick) {
             var container = $("<div />", {class: 'mll-file'});
-            var img = $('<span />', { class: 'mll-thumbnail' });
-            var imgtext = $('<span />', { class: 'mll-imagetext' });
-            var titletext  = $('<p />', {text: 'No title'});
-            
-            img.appendTo(container);
+            var img = $('<div />', { class: 'mll-thumbnail' });
+            var imgtext = $('<div />', { class: 'mll-imagetext' });
             imgtext.appendTo(container);
-            titletext.appendTo(imgtext);
 
             container.data('path', path);
-            img.css({'width': '20px', 'height': '20px', 'background-image': 'url('+ MLL_PLUGIN_URL + 'img/' + MLL_FOLDER_CLOSE +')'});
-            titletext.text(name);
-            titletext.click( function() { onclick(container.data('path')); } );
+            container.css({ 'background': 'url('+ MLL_PLUGIN_URL + 'img/' + MLL_FOLDER_CLOSE +') no-repeat' });
+            imgtext.text(name);
+            imgtext.click( function() { onclick(container.data('path')); } );
 
             return container;
         },

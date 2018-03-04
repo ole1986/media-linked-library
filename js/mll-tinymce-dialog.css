@@ -1,14 +1,14 @@
-body { font-family: sans-serif; font-size: 1.1em; background-color: #fff; color: #222; margin: 0; padding: 0; }
+body { font-family: sans-serif; font-size: 1em; background-color: #fff; color: #222; margin: 0; padding: 0; }
             
 #search { width: 180px; }
 #category { width: 195px; padding: 4px 6px; }
 #upload_folder {width: 160px;padding: 4px 6px; }
 
-#leftContainer { width: 450px; height:545px; display: inline-block; vertical-align: top; background-color: #F1F1F1; }
-#rightContainer { width: 405px; display: inline-block; vertical-align: top; padding: 0.5em; }
+#leftContainer { width: 50%; height:545px; display: inline-block; vertical-align: top; margin: 0; background-color: #F1F1F1; }
+#rightContainer { width: 48%; display: inline-block; vertical-align: top; margin: 0; padding-top: 0.5em;  }
 
 #leftContainer label { width: 100px; display: inline-block; font-size: 70%; }
-#rightContainer label { width: 150px; display: inline-block; font-size: 70%; }
+#rightContainer label { width: 150px; display: inline-block; font-size: 70%; position: relative; }
 
 #file { position:absolute; top:0px; left:65px; width:80px; height:30px;opacity:0; z-index:1000 }
 
@@ -25,13 +25,51 @@ body { font-family: sans-serif; font-size: 1.1em; background-color: #fff; color:
     padding-left: 0.5em;
 }
 
-.mll-media, .mll-file {
+#mll-noselect {
+    overflow-y: scroll;
+    height: 380px;
+}
+#mll-select {
+    background-color: #F1F1F1;
+    position: fixed;
+    width: 431px;
+    bottom: 0px;
+    padding: 0.5em;
+}
+
+#mll-select form > div {
+    display: inline-block; font-size: 90%;
+}
+
+#mll-select form label {
+    width: 100px;
+    display: block;
+    margin-bottom: 0.5em;
+}
+
+
+.mll-file {
+    border-bottom: 1px solid #ddd;
+    padding-top: 0.2em;
+}
+
+.mll-media {
     border-bottom: 1px solid #ddd;
     padding-top: 0.3em;
+    padding-bottom: 0.3em;
 }
-.mll-media p, .mll-file p {
+
+.mll-media .mll-imagetext {
+    font-size:75%;
+    margin-top: 0;
+    padding-left: 85px;
+    cursor: pointer;
+}
+.mll-file .mll-imagetext {
     font-size:70%;
     margin-top: 0;
+    padding-left: 2em;
+    cursor: pointer;
 }
 
 .mceActionPanel {
@@ -46,7 +84,9 @@ input[type="button"] {
     background-image: -ms-linear-gradient(top, #fff, #f3f3f3);
     background-image: -o-linear-gradient(top, #fff, #f3f3f3);
     background-image: linear-gradient(to bottom, #fff, #f3f3f3);
-    border-color: #999;
+    border-color: #ccc;
+    border-width: 1px;
+    border-style: solid;
     padding: 4px;
     color: #222;
 }
@@ -57,7 +97,9 @@ input[type="submit"] {
     background: -webkit-linear-gradient(top, #1e8cbe 0%,#0074a2 100%);
     background: linear-gradient(top, #1e8cbe 0%,#0074a2 100%);
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1e8cbe', endColorstr='#0074a2',GradientType=0 );
-    border-color: #1e8cbe;
+    border-color: #ccc;
+    border-width: 1px;
+    border-style: solid;
     -webkit-box-shadow: inset 0 1px 0 rgba(120,200,230,0.6);
     box-shadow: inset 0 1px 0 rgba(120,200,230,0.6);
     padding: 4px;
@@ -67,35 +109,23 @@ input[type="submit"] {
 input[type="text"] { padding: 4px 6px; }
 
 
-span.mll-thumbnail {
+div.mll-thumbnail {
     display:inline-block;
-    width:100px;
-    height: 80px;
+    width:80px;
+    height: 60px;
     background-size: contain;
     background-repeat: no-repeat;
 }
 
-span.mll-imagetext {
+div.mll-imagetext {
     display:inline-block;
     vertical-align: top;
-    margin-left: 0.5em;
     word-wrap: break-word;
     max-width: 270px;
 }
 
-span.mll-imagetext > p {
-    cursor: pointer;
-    margin-bottom:0.3em;
-    font-weight: bold;
-    
-    
-}
-span.mll-imagetext > div {
-    font-size: 70%;
-}
-
-span.mll-imagetext > a {
-    font-size: 70%;
+div.mll-imagetext > div:first-child {
+    font-size: 110%;
 }
 
 .mediaContainer > div {
@@ -132,13 +162,12 @@ ul#tab {
     padding: 0;
     max-width: 100%;
     width: 100%;
-    height: 100px;
     color: #fff;
     background-color: #0073B2
 }
 
 ul#tab li > div {
-    margin-bottom: 1em;
+    margin-bottom: 0.5em;
 }
 
 ul#tab li {
