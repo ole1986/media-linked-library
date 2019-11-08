@@ -183,7 +183,12 @@ class MediaLinkedLibrary {
         $result = '<p>';
         if(isset($attr['link'])) {
             $link = get_post_meta(intval($attr['link']), '_wp_attached_file',true);
-            $params = 'rel="lightbox"';
+            $mimeType = get_post_mime_type(intval($attr['link']));
+
+            if(preg_match('/^image\//',$mimeType)) {
+                $params = 'rel="lightbox"';
+            }
+            
             if(isset($attr['newwindow']) && $attr['newwindow'] == 'true')
                 $params = 'target="_blank"';
             $result.= sprintf('<a href="%s" %s>', WP_UPLOAD_URI . '/' .  $link, $params);
