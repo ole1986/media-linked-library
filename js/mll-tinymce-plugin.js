@@ -291,7 +291,7 @@
             //img.appendTo(container);
             imgtext.appendTo(container);
 
-            container.css({'background': 'url('+encodeURI(thumbnail)+') no-repeat', 'background-size':'auto 80px'} );
+            container.css({'background-image': 'url('+encodeURI(thumbnail)+')'} );
 
             if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
 

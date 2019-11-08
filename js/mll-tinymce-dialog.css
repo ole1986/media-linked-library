@@ -57,6 +57,9 @@ body { font-family: sans-serif; font-size: 1em; background-color: #fff; color: #
     border-bottom: 1px solid #ddd;
     padding-top: 0.3em;
     padding-bottom: 0.3em;
+    background-size: 80px auto;
+    background-position: left center;
+    background-repeat: no-repeat;
 }
 
 .mll-media .mll-imagetext {
