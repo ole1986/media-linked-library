@@ -331,17 +331,26 @@ class MediaLinkedLibrary {
     private function saveThumbnailFromPDF($filepath, $title){
         global $uploadDir;
 
-        if (!extension_loaded('imagick')) return 0;
-
-        $imagick = new Imagick($uploadDir['basedir'] . '/'. $filepath);
-        $imagick->setIteratorIndex(0);
-        $imagick->setImageOpacity(1); 
-        $imagick->setImageCompressionQuality(40);
-        $imagick->thumbnailImage(300,null); 
-        $imagick->setImageFormat('png');
-        
         $destFile = preg_replace("/\.pdf$/i", '-image.png', $filepath);
-        $success = $imagick->writeImage($uploadDir['basedir'] . '/' . $destFile);
+
+        if (extension_loaded('imagick')) {
+            $imagick = new Imagick($uploadDir['basedir'] . '/'. $filepath);
+            $imagick->setIteratorIndex(0);
+            $imagick->setImageOpacity(1); 
+            $imagick->setImageCompressionQuality(90);
+            $imagick->thumbnailImage(500, null); 
+            $imagick->setImageFormat('png');
+
+            $success = $imagick->writeImage($uploadDir['basedir'] . '/' . $destFile);
+        } else if (extension_loaded('gmagick')) {
+            $imagick = new Gmagick($uploadDir['basedir'] . '/'. $filepath);
+            $imagick->setCompressionQuality(90);
+            $imagick->thumbnailImage(500,null); 
+            $imagick->setimageformat('png');
+
+            $success = $imagick->writeimage($uploadDir['basedir'] . '/' . $destFile);
+        }
+
         if(!$success) return 0;
 
         $attachment_id = wp_insert_attachment( ['post_title' => $title . ' (thumbnail)', 'post_mime_type' => 'image/png' ], $destFile);
