@@ -3,7 +3,7 @@
 Plugin Name: Media Linked Library
 Plugin URI:  https://github.com/ole1986/media-linked-library
 Description: Support for adding media files to page/post content using the IDs instead of URLs
-Version:     1.0.14
+Version:     1.0.15
 Author:      ole1986
 Author URI:  https://profiles.wordpress.org/ole1986
 License:     GPL2
@@ -78,7 +78,7 @@ class MediaLinkedLibrary {
                 $quote = "^" . preg_quote("{$root}/");
             $quote .= "[^\/]+$";
             $post_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->postmeta} AS pm LEFT JOIN {$wpdb->posts} AS p ON p.ID = pm.post_id WHERE meta_key = '_wp_attached_file' AND meta_value REGEXP '{$quote}' ORDER BY p.post_date DESC");
-            
+
             $result['files'] = $post_ids;
             return $result;
         }
