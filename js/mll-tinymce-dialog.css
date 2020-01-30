@@ -127,6 +127,12 @@ div.mll-imagetext {
     max-width: 270px;
 }
 
+div.mll-datetext {
+    margin-top: .3em;
+    font-size: 90%;
+    font-weight: bold;
+}
+
 div.mll-imagetext > div:first-child {
     font-size: 110%;
 }

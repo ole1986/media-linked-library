@@ -77,7 +77,7 @@ class MediaLinkedLibrary {
             if(!empty($root))
                 $quote = "^" . preg_quote("{$root}/");
             $quote .= "[^\/]+$";
-            $post_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value REGEXP '{$quote}'");
+            $post_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->postmeta} AS pm LEFT JOIN {$wpdb->posts} AS p ON p.ID = pm.post_id WHERE meta_key = '_wp_attached_file' AND meta_value REGEXP '{$quote}' ORDER BY p.post_date DESC");
             
             $result['files'] = $post_ids;
             return $result;
@@ -398,7 +398,7 @@ class MediaLinkedLibrary {
     private function getMedia($media_ids, $withMetadata = false) {
         if(is_array($media_ids))
         {
-            $mediaList = get_posts(['post_type' => 'attachment','post__in' => $media_ids]);
+            $mediaList = get_posts(['post_type' => 'attachment', 'numberposts' => 15, 'post__in' => $media_ids]);
 
             if($withMetadata) {
                 foreach ($mediaList as &$media) {

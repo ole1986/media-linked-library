@@ -284,8 +284,9 @@
             var container = $("<div />", {class: 'mll-media'});
             //var img = $('<div />', { class: 'mll-thumbnail' });
             var imgtext = $('<div />', { class: 'mll-imagetext' });
-            var titletext = $('<div />');
-            var mimetext = $('<p />');
+            var titletext = $('<div />', {text: data['post_title']});
+            var datetext = $('<div />', {class: 'mll-datetext', text: data['post_date']});
+            var mimetext = $('<p />', { text: data['post_mime_type'] });
             var linktext = $('<a />', { href: 'javascript:;',text: 'Link to selection' });
 
             //img.appendTo(container);
@@ -296,13 +297,10 @@
             if(data['exists'] != undefined) data['post_title']  += " [NOT UPDATED]";
 
             titletext.click(function(){ onClick(data['ID']); });
-            titletext.text(data['post_title']);
             titletext.appendTo(imgtext);
-
+            datetext.appendTo(imgtext);
             mimetext.appendTo(imgtext);
             linktext.appendTo(imgtext);
-
-            mimetext.text( data['post_mime_type']);
 
             linktext.click(function() { onLinkClick(data['ID']) });
             linktext.attr('title', 'ID: ' + data['ID']);
